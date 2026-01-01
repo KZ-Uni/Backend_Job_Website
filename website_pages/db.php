@@ -5,13 +5,6 @@ $password = "";
 $dbname = "job_portal";
 $port = 3307;
 
-$conn = new mysqli($servername, $username, $password, $dbname, $port);
-
-if ($conn->connect_error)
-{
-    die("Connection failed: " . $conn->connect_error);
-}
-
 /* ---------------------------------------------------------
    1. CONNECT TO MYSQL WITHOUT SELECTING A DATABASE
 --------------------------------------------------------- */
@@ -101,12 +94,13 @@ createDefaultUser($conn, "jobseeker1", "jobseeker1@example.com", "jobseeker1", "
 
 $checkJobs = $conn->query("SELECT id FROM jobs LIMIT 1");
 
-if ($checkJobs->num_rows == 0) {
-
+if ($checkJobs->num_rows == 0)
+{
     // Get employer ID
     $emp = $conn->query("SELECT id FROM users WHERE role='Employer' LIMIT 1");
 
-    if ($emp && $emp->num_rows > 0) {
+    if ($emp && $emp->num_rows > 0)
+    {
 
         $empRow = $emp->fetch_assoc();
         $employer_id = (int)$empRow['id'];
@@ -115,6 +109,7 @@ if ($checkJobs->num_rows == 0) {
         $conn->query("
             INSERT INTO jobs (employer_id, title, company, location, job_type, description)
             VALUES 
+
             ($employer_id, 'Junior Web Developer', 'TechCorp', 'New York', 'Full-time',
             'We are looking for a junior web developer to join our growing team.'),
 
@@ -125,7 +120,9 @@ if ($checkJobs->num_rows == 0) {
             'Assist our marketing team with campaigns, social media, and analytics.')
         ");
 
-    } else {
+    }
+    else
+    {
         error_log("No employer found. Default jobs not created.");
     }
 }?>
