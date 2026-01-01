@@ -94,34 +94,39 @@ createDefaultUser($conn, "admin1", "admin1@example.com", "admin1", "Admin");
 createDefaultUser($conn, "employer1", "employer1@example.com", "employer1", "Employer");
 createDefaultUser($conn, "jobseeker1", "jobseeker1@example.com", "jobseeker1", "Jobseeker");
 
+
 /* ---------------------------------------------------------
    6. CREATE DEFAULT JOBS IF NONE EXIST
 --------------------------------------------------------- */
 
-// Check if jobs table is empty
 $checkJobs = $conn->query("SELECT id FROM jobs LIMIT 1");
 
-if ($checkJobs->num_rows == 0)
-{
-    // Get employer ID (default employer)
-    $emp = $conn->query("SELECT id FROM users WHERE username='employer' LIMIT 1");
-    $empRow = $emp->fetch_assoc();
-    $employer_id = $empRow['id'];
+if ($checkJobs->num_rows == 0) {
 
-    // Insert sample jobs
-    $conn->query("
-        INSERT INTO jobs (employer_id, title, company, location, job_type, description)
-        VALUES 
-        ($employer_id, 'Junior Web Developer', 'TechCorp', 'New York', 'Full-time',
-        'We are looking for a junior web developer to join our growing team.'),
-        
-        ($employer_id, 'Graphic Designer', 'Creative Studio', 'Remote', 'Part-time',
-        'Seeking a creative graphic designer for remote freelance work.'),
+    // Get employer ID
+    $emp = $conn->query("SELECT id FROM users WHERE role='Employer' LIMIT 1");
 
-        ($employer_id, 'Marketing Assistant', 'MarketPro', 'San Francisco', 'Full-time',
-        'Assist our marketing team with campaigns, social media, and analytics.')
-    ");
-}
+    if ($emp && $emp->num_rows > 0) {
 
+        $empRow = $emp->fetch_assoc();
+        $employer_id = (int)$empRow['id'];
 
-?>
+        // Insert sample jobs
+        $conn->query("
+            INSERT INTO jobs (employer_id, title, company, location, job_type, description)
+            VALUES 
+            ($employer_id, 'Junior Web Developer', 'TechCorp', 'New York', 'Full-time',
+            'We are looking for a junior web developer to join our growing team.'),
+
+            ($employer_id, 'Graphic Designer', 'Creative Studio', 'Remote', 'Part-time',
+            'Seeking a creative graphic designer for remote freelance work.'),
+
+            ($employer_id, 'Marketing Assistant', 'MarketPro', 'San Francisco', 'Full-time',
+            'Assist our marketing team with campaigns, social media, and analytics.')
+        ");
+
+    } else {
+        error_log("No employer found. Default jobs not created.");
+    }
+}?>
+
