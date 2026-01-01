@@ -13,9 +13,11 @@ if ($conn->connect_error)
 {
     die("Connection failed: " . $conn->connect_error);
 }
+
 /* ---------------------------------------------------------
    2. CREATE DATABASE IF IT DOES NOT EXIST
 --------------------------------------------------------- */
+
 $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 
 /* ---------------------------------------------------------
@@ -23,7 +25,6 @@ $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 --------------------------------------------------------- */
 
 $conn->select_db($dbname);
-
 
 /* ---------------------------------------------------------
    4. AUTO‑CREATE TABLES IF THEY DO NOT EXIST
@@ -72,14 +73,14 @@ CREATE TABLE IF NOT EXISTS applications (
    5. AUTO‑CREATE DEFAULT USERS IF THEY DO NOT EXIST
 --------------------------------------------------------- */
 
-function createDefaultUser($conn, $username, $email, $password, $role) {
+function createDefaultUser($conn, $username, $email, $password, $role)
+{
     $check = $conn->query("SELECT id FROM users WHERE username='$username' OR email='$email'");
-    if ($check->num_rows == 0) {
+    if ($check->num_rows == 0)
+    {
         $hashed = password_hash($password, PASSWORD_BCRYPT);
-        $conn->query("
-            INSERT INTO users (username, email, password, role)
-            VALUES ('$username', '$email', '$hashed', '$role')
-        ");
+        $conn->query("INSERT INTO users (username, email, password, role)
+            VALUES ('$username', '$email', '$hashed', '$role')");
     }
 }
 
@@ -106,8 +107,7 @@ if ($checkJobs->num_rows == 0)
         $employer_id = (int)$empRow['id'];
 
         // Insert sample jobs
-        $conn->query("
-            INSERT INTO jobs (employer_id, title, company, location, job_type, description)
+        $conn->query("INSERT INTO jobs (employer_id, title, company, location, job_type, description)
             VALUES 
 
             ($employer_id, 'Junior Web Developer', 'TechCorp', 'New York', 'Full-time',
@@ -126,4 +126,3 @@ if ($checkJobs->num_rows == 0)
         error_log("No employer found. Default jobs not created.");
     }
 }?>
-
