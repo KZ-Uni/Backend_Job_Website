@@ -2,27 +2,38 @@
 session_start();
 include('db.php');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
+// Only Admin or Employer can delete jobs
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Admin', 'Employer'])) {
     header("Location: login.php");
     exit();
 }
 
-$employer_id = (int)$_SESSION['user_id'];
+if (isset($_GET['id'])) {
+    $job_id = (int)$_GET['id'];
+    $user_id = (int)$_SESSION['user_id'];
+    $role = $_SESSION['role'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
-    $job_id = (int)$_POST['id'];
+    // If employer, make sure they own the job
+    if ($role === 'Employer') {
+        $check = $conn->query("SELECT employer_id FROM jobs WHERE id = $job_id");
+        if ($check->num_rows === 0) {
+            header("Location: admin_dashboard.php");
+            exit();
+        }
 
-    $stmt = $conn->prepare("DELETE FROM jobs WHERE id = ? AND employer_id = ?");
-    $stmt->bind_param("ii", $job_id, $employer_id);
+        $job = $check->fetch_assoc();
 
-    if ($stmt->execute() && $stmt->affected_rows > 0) {
-        header("Location: employer_dashboard.php?deleted=1");
-        exit();
-    } else {
-        header("Location: employer_dashboard.php?error=notfound");
-        exit();
+        // Employer cannot delete jobs they don't own
+        if ($job['employer_id'] !== $user_id) {
+            header("Location: admin_dashboard.php");
+            exit();
+        }
     }
-} else {
-    header("Location: employer_dashboard.php?error=noid");
-    exit();
+
+    // Delete the job (applications will auto-delete because of ON DELETE CASCADE)
+    $conn->query("DELETE FROM jobs WHERE id = $job_id");
 }
+
+header("Location: admin_dashboard.php");
+exit();
+
