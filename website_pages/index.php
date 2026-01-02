@@ -1,5 +1,7 @@
 <?php
+session_start();
 include('db.php');
+
 
 // Fetch jobs from the database
 $sql = "SELECT * FROM jobs ORDER BY created_at DESC";
@@ -119,3 +121,4 @@ $result = $conn->query($sql);
 // Close the database connection
 $conn->close();
 ?>
+
