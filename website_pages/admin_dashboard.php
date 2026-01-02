@@ -23,6 +23,7 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
         <h1>Admin Dashboard</h1>
         <nav>
             <ul>
+                <li><a href="index.php">Home</a></li>
                 <li>Hello, <?php echo $_SESSION['username']; ?></li>
                 <li><a href="logout.php">Logout</a></li>
             </ul>
@@ -59,3 +60,4 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
 
 </body>
 </html>
+
