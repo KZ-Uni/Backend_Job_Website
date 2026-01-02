@@ -29,7 +29,7 @@ if (!empty($_POST)) {
             }
             elseif ($user['role'] == 'Jobseeker')
             {
-                header('Location: employer_dashboard.php');
+                header('Location: jobseeker_dashboard.php');
             }
             else
             {
@@ -89,4 +89,5 @@ $conn->close();
     </footer>
 </body>
 </html>
+
 
