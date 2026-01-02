@@ -66,7 +66,7 @@ $result = $conn->query($sql);
 
                     <a href="edit_job.php?id=<?php echo $job['id']; ?>">Edit</a>
                     |
-                    <form action="delete_job.php" method="POST" class="inline-form" onsubmit="return confirm('Delete this job?');">
+                    <form action="delete_job_employer.php" method="POST" class="inline-form" onsubmit="return confirm('Delete this job?');">
                         <input type="hidden" name="id" value="<?php echo (int)$job['id']; ?>">
                         <button type="submit" class="link-button">Delete</button>
                     </form>
@@ -86,3 +86,6 @@ $result = $conn->query($sql);
 
 </body>
 </html>
+
+</html>
+
