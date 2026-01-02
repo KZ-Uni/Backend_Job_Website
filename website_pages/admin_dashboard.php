@@ -9,6 +9,20 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
 
 $users = $conn->query("SELECT * FROM users ORDER BY id DESC");
 $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
+
+$applications = $conn->query("
+    SELECT 
+        a.id,
+        a.applied_at,
+        u.username AS applicant_name,
+        u.email AS applicant_email,
+        j.title AS job_title,
+        j.company AS job_company
+    FROM applications a
+    JOIN users u ON a.user_id = u.id
+    JOIN jobs j ON a.job_id = j.id
+    ORDER BY a.applied_at DESC
+");
 ?>
 <!DOCTYPE html>
 <html>
@@ -34,6 +48,7 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
 <main>
     <div class="container" style="width:80%; margin:30px auto;">
 
+        <!-- USERS SECTION -->
         <h2>All Users</h2>
         <?php while($u = $users->fetch_assoc()): ?>
             <div class="job-item">
@@ -42,6 +57,8 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
             </div>
         <?php endwhile; ?>
 
+
+        <!-- JOBS SECTION -->
         <h2 style="margin-top:40px;">All Jobs</h2>
         <?php while($j = $jobs->fetch_assoc()): ?>
             <div class="job-item">
@@ -50,6 +67,32 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
                 <a href="delete_job.php?id=<?php echo $j['id']; ?>">Delete Job</a>
             </div>
         <?php endwhile; ?>
+
+
+        <!-- APPLICATIONS SECTION -->
+        <h2 style="margin-top:40px;">All Applications</h2>
+
+        <?php if ($applications && $applications->num_rows > 0): ?>
+            <?php while($a = $applications->fetch_assoc()): ?>
+                <div class="job-item">
+                    <p>
+                        <strong>Applicant:</strong>
+                        <?php echo htmlspecialchars($a['applicant_name']); ?>
+                        (<?php echo htmlspecialchars($a['applicant_email']); ?>)
+                    </p>
+                    <p>
+                        <strong>Job:</strong>
+                        <?php echo htmlspecialchars($a['job_title']); ?>
+                        at <?php echo htmlspecialchars($a['job_company']); ?>
+                    </p>
+                    <p>
+                        <strong>Applied at:</strong> <?php echo $a['applied_at']; ?>
+                    </p>
+                </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <p>No applications found.</p>
+        <?php endif; ?>
 
     </div>
 </main>
