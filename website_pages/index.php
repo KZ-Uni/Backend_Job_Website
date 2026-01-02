@@ -1,5 +1,4 @@
 <?php
-session_start();
 include('db.php');
 
 // Fetch jobs from the database
@@ -92,7 +91,7 @@ $result = $conn->query($sql);
                         <p><strong>Location:</strong> <?php echo htmlspecialchars($row['location']); ?></p>
                         <p><strong>Type:</strong> <?php echo htmlspecialchars($row['job_type']); ?></p>
                         <p><strong>Description:</strong> <?php echo substr(htmlspecialchars($row['description']), 0, 100); ?>...</p>
-                        <a href="job-details.php?id=<?php echo $row['id']; ?>">View Details</a>
+                        <a href="job_details.php?id=<?php echo $row['id']; ?>">View Details</a>
                     </div>
                 <?php endwhile; ?>
             <?php else: ?>
@@ -120,4 +119,3 @@ $result = $conn->query($sql);
 // Close the database connection
 $conn->close();
 ?>
-
