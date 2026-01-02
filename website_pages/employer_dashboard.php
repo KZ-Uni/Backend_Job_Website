@@ -72,7 +72,6 @@ $result = $conn->query($sql);
                     </form>
                     |
                     <a href="view_applicants.php?job_id=<?php echo $job['id']; ?>">Applicants</a>
-
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
@@ -87,5 +86,3 @@ $result = $conn->query($sql);
 
 </body>
 </html>
-
-
