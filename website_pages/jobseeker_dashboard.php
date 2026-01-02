@@ -47,7 +47,7 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
                 <div class="job-item">
                     <h4><?php echo $job['title']; ?></h4>
                     <p><strong>Company:</strong> <?php echo $job['company']; ?></p>
-                    <a href="job-details.php?id=<?php echo $job['id']; ?>">View Job</a>
+                    <a href="job_details.php?id=<?php echo $job['id']; ?>">View Job</a>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
@@ -59,7 +59,7 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
             <div class="job-item">
                 <h4><?php echo $job['title']; ?></h4>
                 <p><strong>Company:</strong> <?php echo $job['company']; ?></p>
-                <a href="job-details.php?id=<?php echo $job['id']; ?>">View Job</a>
+                <a href="job_details.php?id=<?php echo $job['id']; ?>">View Job</a>
             </div>
         <?php endwhile; ?>
 
