@@ -24,6 +24,7 @@ $result = $conn->query($sql);
         <h1>Employer Dashboard</h1>
         <nav>
             <ul>
+                <li><a href="index.php">Home</a></li>
                 <li>Hello, <?php echo $_SESSION['username']; ?></li>
                 <li><a href="add_job.php">Post Job</a></li>
                 <li><a href="logout.php">Logout</a></li>
@@ -60,3 +61,4 @@ $result = $conn->query($sql);
 
 </body>
 </html>
+
