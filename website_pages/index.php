@@ -1,5 +1,5 @@
 <?php
-// Include the database connection
+session_start();
 include('db.php');
 
 // Fetch jobs from the database
@@ -23,8 +23,18 @@ $result = $conn->query($sql);
             <nav>
                 <ul>
                     <li><a href="index.php">Home</a></li>
+
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <li>Hello, <?php echo $_SESSION['username']; ?> (<?php echo $_SESSION['role']; ?>)</li>
+                        <li>Hello, <?php echo htmlspecialchars($_SESSION['username']); ?> (<?php echo htmlspecialchars($_SESSION['role']); ?>)</li>
+
+                        <?php if ($_SESSION['role'] === 'Admin'): ?>
+                            <li><a href="admin_dashboard.php">Dashboard</a></li>
+                        <?php elseif ($_SESSION['role'] === 'Employer'): ?>
+                            <li><a href="employer_dashboard.php">Dashboard</a></li>
+                        <?php elseif ($_SESSION['role'] === 'Jobseeker'): ?>
+                            <li><a href="jobseeker_dashboard.php">Dashboard</a></li>
+                        <?php endif; ?>
+
                         <li><a href="logout.php">Logout</a></li>
                     <?php else: ?>
                         <li><a href="signup.php">Sign Up</a></li>
@@ -110,3 +120,4 @@ $result = $conn->query($sql);
 // Close the database connection
 $conn->close();
 ?>
+
