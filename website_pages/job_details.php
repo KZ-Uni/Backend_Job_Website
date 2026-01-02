@@ -51,6 +51,15 @@ $job = $result->fetch_assoc();
 
 <main>
     <div class="container" style="width:70%; margin:30px auto;">
+        <!-- Success / error messages -->
+        <?php if (isset($_GET['applied'])): ?>
+            <p style="color: green;">Application submitted successfully!</p>
+        <?php elseif (isset($_GET['error']) && $_GET['error'] === 'alreadyapplied'): ?>
+            <p style="color: red;">You have already applied for this job.</p>
+        <?php elseif (isset($_GET['error']) && $_GET['error'] === 'applyfail'): ?>
+            <p style="color: red;">Error submitting application. Please try again.</p>
+        <?php endif; ?>
+
         <div class="job-item">
             <h2><?php echo htmlspecialchars($job['title']); ?></h2>
             <p><strong>Company:</strong> <?php echo htmlspecialchars($job['company']); ?></p>
@@ -61,12 +70,17 @@ $job = $result->fetch_assoc();
             <p><?php echo nl2br(htmlspecialchars($job['description'])); ?></p>
         </div>
 
-        <!-- Optional: Apply button for job seekers -->
-        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'JobSeeker'): ?>
+        <!-- Apply button for Jobseekers -->
+        <?php $role = isset($_SESSION['role']) ? strtolower($_SESSION['role']) : null;
+        if ($role === 'jobseeker'): ?>
             <form action="apply_job.php" method="POST" style="margin-top:20px;">
                 <input type="hidden" name="job_id" value="<?php echo $job['id']; ?>">
                 <button type="submit">Apply Now</button>
             </form>
+        <?php elseif (!isset($_SESSION['role'])): ?>
+            <p style="margin-top:10px;">
+                <a href="login.php">Log in</a> to apply for this job.
+            </p>
         <?php endif; ?>
     </div>
 </main>
