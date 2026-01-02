@@ -22,9 +22,17 @@ if (!empty($_POST)) {
 
             if ($user['role'] == 'Admin') {
                 header('Location: admin_dashboard.php');
-            } elseif ($user['role'] == 'Employer') {
+            }
+            elseif ($user['role'] == 'Employer')
+            {
                 header('Location: employer_dashboard.php');
-            } else {
+            }
+            elseif ($user['role'] == 'Jobseeker')
+            {
+                header('Location: employer_dashboard.php');
+            }
+            else
+            {
                 header('Location: index.php');
             }
             exit();
@@ -81,3 +89,4 @@ $conn->close();
     </footer>
 </body>
 </html>
+
