@@ -28,6 +28,39 @@ $job = $result->fetch_assoc();
 <head>
     <title><?php echo htmlspecialchars($job['title']); ?> - Job Details</title>
     <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* Inline CSS just for job_details page */
+
+        .apply-form {
+            margin-top: 20px;
+        }
+
+        .apply-form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .apply-form button:hover {
+            background-color: #555;
+        }
+
+        /* Success/error messages */
+        .message-success {
+            color: green;
+            margin-bottom: 15px;
+        }
+
+        .message-error {
+            color: red;
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
 <body>
 
@@ -53,11 +86,11 @@ $job = $result->fetch_assoc();
     <div class="container" style="width:70%; margin:30px auto;">
         <!-- Success / error messages -->
         <?php if (isset($_GET['applied'])): ?>
-            <p style="color: green;">Application submitted successfully!</p>
+            <p class="message-success">Application submitted successfully!</p>
         <?php elseif (isset($_GET['error']) && $_GET['error'] === 'alreadyapplied'): ?>
-            <p style="color: red;">You have already applied for this job.</p>
+            <p class="message-error">You have already applied for this job.</p>
         <?php elseif (isset($_GET['error']) && $_GET['error'] === 'applyfail'): ?>
-            <p style="color: red;">Error submitting application. Please try again.</p>
+            <p class="message-error">Error submitting application. Please try again.</p>
         <?php endif; ?>
 
         <div class="job-item">
@@ -71,10 +104,11 @@ $job = $result->fetch_assoc();
         </div>
 
         <!-- Apply button for Jobseekers -->
-        <?php $role = isset($_SESSION['role']) ? strtolower($_SESSION['role']) : null;
+        <?php
+        $role = isset($_SESSION['role']) ? strtolower($_SESSION['role']) : null;
         if ($role === 'jobseeker'): ?>
-            <form action="apply_job.php" method="POST" style="margin-top:20px;">
-                <input type="hidden" name="job_id" value="<?php echo $job['id']; ?>">
+            <form action="apply_job.php" method="POST" class="apply-form">
+                <input type="hidden" name="job_id" value="<?php echo (int)$job['id']; ?>">
                 <button type="submit">Apply Now</button>
             </form>
         <?php elseif (!isset($_SESSION['role'])): ?>
@@ -91,3 +125,4 @@ $job = $result->fetch_assoc();
 
 </body>
 </html>
+
