@@ -23,9 +23,9 @@ if ($res->num_rows === 0) {
     exit("Unauthorized access");
 }
 
-// Fetch applicants
+// Fetch applicants INCLUDING STATUS
 $stmt = $conn->prepare("
-    SELECT users.username, users.email, applications.applied_at
+    SELECT users.username, users.email, applications.applied_at, applications.status
     FROM applications
     JOIN users ON applications.user_id = users.id
     WHERE applications.job_id = ?
@@ -43,21 +43,28 @@ header("Content-Disposition: attachment; filename=applicants_job_$job_id.csv");
 
 $output = fopen("php://output", "w");
 
-// Use semicolon as delimiter
+// Use semicolon for Excel compatibility
 $delimiter = ";";
 
 // Header row
-fputcsv($output, ["Username", "Email", "Applied At"], $delimiter);
+fputcsv($output, ["Username", "Email", "Applied At", "Status"], $delimiter);
 
 // Data rows
 while ($row = $result->fetch_assoc()) {
+
+    // Prevent Excel ####### issue by forcing text
+    $appliedAt = "'" . $row['applied_at'];
+
     fputcsv($output, [
         $row['username'],
         $row['email'],
-        $row['applied_at']
+        $appliedAt,
+        $row['status']
     ], $delimiter);
 }
 
 fclose($output);
 exit();
 ?>
+
+
