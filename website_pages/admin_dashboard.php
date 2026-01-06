@@ -53,6 +53,8 @@ $applications = $conn->query("
         <?php while($u = $users->fetch_assoc()): ?>
             <div class="job-item">
                 <p><strong><?php echo $u['username']; ?></strong> (<?php echo $u['role']; ?>)</p>
+
+                <a href="edit_user_role.php?id=<?php echo $u['id']; ?>">Edit Role</a> | 
                 <a href="delete_user.php?id=<?php echo $u['id']; ?>">Delete User</a>
             </div>
         <?php endwhile; ?>
@@ -64,6 +66,9 @@ $applications = $conn->query("
             <div class="job-item">
                 <h4><?php echo $j['title']; ?></h4>
                 <p><strong>Company:</strong> <?php echo $j['company']; ?></p>
+
+                <!-- NEW: Edit Job link added -->
+                <a href="edit_job.php?id=<?php echo $j['id']; ?>">Edit Job</a> | 
                 <a href="delete_job.php?id=<?php echo $j['id']; ?>">Delete Job</a>
             </div>
         <?php endwhile; ?>
@@ -103,4 +108,3 @@ $applications = $conn->query("
 
 </body>
 </html>
-
