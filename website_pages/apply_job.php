@@ -1,6 +1,8 @@
 <?php
 session_start();
+include('timeout_check.php');
 include('db.php');
+
 
 // Only allow Jobseekers
 if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'jobseeker') {
@@ -40,3 +42,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['job_id'])) {
     exit();
 }
 ?>
+
+
