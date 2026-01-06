@@ -65,14 +65,33 @@ $applicantResult = $applicants->get_result();
             border-radius: 6px;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            background: #fafafa;
-            border: 1px dashed #ccc;
-            border-radius: 6px;
-            color: #777;
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: white;
         }
+
+        .Pending { background: gray; }
+        .Filtered { background: #6c757d; }
+        .Interview { background: #17a2b8; }
+        .Accepted { background: green; }
+        .Rejected { background: red; }
+
+        .pipeline-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-top: 5px;
+        }
+
+        .btn-filter { background: #6c757d; }
+        .btn-interview { background: #17a2b8; }
+        .btn-accept { background: green; }
+        .btn-reject { background: red; }
 
         .download-btn {
             padding: 8px 12px;
@@ -133,6 +152,40 @@ $applicantResult = $applicants->get_result();
                     <p><strong>Name:</strong> <?php echo htmlspecialchars($row['username']); ?></p>
                     <p><strong>Email:</strong> <?php echo htmlspecialchars($row['email']); ?></p>
                     <p><strong>Applied on:</strong> <?php echo htmlspecialchars($row['applied_at']); ?></p>
+
+                    <p>
+                        <strong>Status:</strong>
+                        <span class="status-badge <?php echo $row['status']; ?>">
+                            <?php echo $row['status']; ?>
+                        </span>
+                    </p>
+
+                    <!-- PIPELINE BUTTONS -->
+                    <div>
+                        <form action="update_application_status.php" method="POST" style="display:inline;">
+                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                            <input type="hidden" name="status" value="Filtered">
+                            <button class="pipeline-btn btn-filter">Filtered</button>
+                        </form>
+
+                        <form action="update_application_status.php" method="POST" style="display:inline;">
+                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                            <input type="hidden" name="status" value="Interview">
+                            <button class="pipeline-btn btn-interview">Interview</button>
+                        </form>
+
+                        <form action="update_application_status.php" method="POST" style="display:inline;">
+                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                            <input type="hidden" name="status" value="Rejected">
+                            <button class="pipeline-btn btn-reject">Reject</button>
+                        </form>
+                        
+                        <form action="update_application_status.php" method="POST" style="display:inline;">
+                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                            <input type="hidden" name="status" value="Accepted">
+                            <button class="pipeline-btn btn-accept">Accept</button>
+                        </form>
+                    </div>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
@@ -154,12 +207,3 @@ $applicantResult = $applicants->get_result();
 </body>
 </html>
 
-    </div>
-</main>
-
-<footer>
-    <p>&copy; 2025 Job Portal. All rights reserved.</p>
-</footer>
-
-</body>
-</html>
