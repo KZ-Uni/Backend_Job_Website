@@ -1,5 +1,6 @@
 <?php
 session_start();
+include('timeout_check.php');
 include('db.php');
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
