@@ -1,5 +1,6 @@
 <?php
 session_start();
+include('timeout_check.php');
 include('db.php');
 
 // Only Admin or Employer can delete jobs
@@ -36,4 +37,3 @@ if (isset($_GET['id'])) {
 
 header("Location: admin_dashboard.php");
 exit();
-
