@@ -1,5 +1,6 @@
 <?php
 session_start();
+include('timeout_check.php');
 include('db.php');
 
 // Ensure the form is submitted using POST method
