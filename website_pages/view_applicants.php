@@ -31,19 +31,15 @@ if ($jobResult->num_rows === 0) {
 
 $job = $jobResult->fetch_assoc();
 
-// Search + Sort
-$search = isset($_GET['search']) ? "%".$_GET['search']."%" : "%";
-$sort = isset($_GET['sort']) ? $_GET['sort'] : "DESC";
-
+// Fetch applicants
 $applicants = $conn->prepare("
     SELECT applications.*, users.username, users.email 
     FROM applications
     JOIN users ON applications.user_id = users.id
     WHERE applications.job_id = ?
-    AND (users.username LIKE ? OR users.email LIKE ?)
-    ORDER BY applications.applied_at $sort
+    ORDER BY applications.applied_at DESC
 ");
-$applicants->bind_param("iss", $job_id, $search, $search);
+$applicants->bind_param("i", $job_id);
 $applicants->execute();
 $applicantResult = $applicants->get_result();
 ?>
@@ -62,36 +58,11 @@ $applicantResult = $applicants->get_result();
         }
 
         .applicant-box {
-            background: #fff;
+            background: #f9f9f9;
             border: 1px solid #ddd;
             padding: 18px;
             margin-bottom: 15px;
             border-radius: 6px;
-            transition: 0.2s;
-        }
-
-        .applicant-box:hover {
-            background: #f9f9f9;
-            border-color: #bbb;
-        }
-
-        .search-sort {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .search-sort input {
-            width: 60%;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-
-        .search-sort select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
         }
 
         .empty-state {
@@ -101,6 +72,20 @@ $applicantResult = $applicants->get_result();
             border: 1px dashed #ccc;
             border-radius: 6px;
             color: #777;
+        }
+
+        .download-btn {
+            padding: 8px 12px;
+            background: #007BFF;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .download-btn:hover {
+            background: #0056b3;
         }
 
         .back-link {
@@ -137,19 +122,10 @@ $applicantResult = $applicants->get_result();
             <p><strong>Total Applicants:</strong> <?php echo $applicantResult->num_rows; ?></p>
         </div>
 
-        <form method="GET" class="search-sort">
-            <input type="hidden" name="job_id" value="<?php echo $job_id; ?>">
-
-            <input type="text" name="search" placeholder="Search applicants..."
-                   value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-
-            <select name="sort">
-                <option value="DESC" <?php if ($sort === "DESC") echo "selected"; ?>>Newest First</option>
-                <option value="ASC" <?php if ($sort === "ASC") echo "selected"; ?>>Oldest First</option>
-            </select>
-
-            <button type="submit" style="padding:8px 12px;">Apply</button>
-        </form>
+        <!-- DOWNLOAD CSV BUTTON -->
+        <a href="download_applicants.php?job_id=<?php echo $job_id; ?>" class="download-btn">
+            Download Applicants (CSV)
+        </a>
 
         <?php if ($applicantResult->num_rows > 0): ?>
             <?php while ($row = $applicantResult->fetch_assoc()): ?>
@@ -167,6 +143,16 @@ $applicantResult = $applicants->get_result();
         <?php endif; ?>
 
         <a href="employer_dashboard.php" class="back-link">← Back to Dashboard</a>
+
+    </div>
+</main>
+
+<footer>
+    <p>&copy; 2025 Job Portal. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
 
     </div>
 </main>
