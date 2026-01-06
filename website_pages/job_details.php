@@ -22,6 +22,21 @@ if ($result->num_rows === 0) {
 }
 
 $job = $result->fetch_assoc();
+
+// Check if user already applied
+$alreadyApplied = false;
+
+if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
+    $user_id = $_SESSION['user_id'];
+
+    $check = $conn->prepare("
+        SELECT id FROM applications 
+        WHERE user_id = ? AND job_id = ?
+    ");
+    $check->bind_param("ii", $user_id, $job_id);
+    $check->execute();
+    $alreadyApplied = $check->get_result()->num_rows > 0;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -29,12 +44,9 @@ $job = $result->fetch_assoc();
     <title><?php echo htmlspecialchars($job['title']); ?> - Job Details</title>
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        /* Inline CSS just for job_details page */
-
         .apply-form {
             margin-top: 20px;
         }
-
         .apply-form button {
             width: 100%;
             padding: 10px;
@@ -45,21 +57,11 @@ $job = $result->fetch_assoc();
             border-radius: 4px;
             font-size: 16px;
         }
-
         .apply-form button:hover {
             background-color: #555;
         }
-
-        /* Success/error messages */
-        .message-success {
-            color: green;
-            margin-bottom: 15px;
-        }
-
-        .message-error {
-            color: red;
-            margin-bottom: 15px;
-        }
+        .message-success { color: green; margin-bottom: 15px; }
+        .message-error { color: red; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -84,6 +86,7 @@ $job = $result->fetch_assoc();
 
 <main>
     <div class="container" style="width:70%; margin:30px auto;">
+
         <!-- Success / error messages -->
         <?php if (isset($_GET['applied'])): ?>
             <p class="message-success">Application submitted successfully!</p>
@@ -103,19 +106,29 @@ $job = $result->fetch_assoc();
             <p><?php echo nl2br(htmlspecialchars($job['description'])); ?></p>
         </div>
 
-        <!-- Apply button for Jobseekers -->
+        <!-- Apply button logic -->
         <?php
         $role = isset($_SESSION['role']) ? strtolower($_SESSION['role']) : null;
-        if ($role === 'jobseeker'): ?>
-            <form action="apply_job.php" method="POST" class="apply-form">
-                <input type="hidden" name="job_id" value="<?php echo (int)$job['id']; ?>">
-                <button type="submit">Apply Now</button>
-            </form>
-        <?php elseif (!isset($_SESSION['role'])): ?>
+
+        if ($role === 'jobseeker'):
+
+            if ($alreadyApplied): ?>
+                <p style="color: green; margin-top: 15px;">
+                    You have already applied for this job.
+                </p>
+            <?php else: ?>
+                <form action="apply_job.php" method="POST" class="apply-form">
+                    <input type="hidden" name="job_id" value="<?php echo (int)$job['id']; ?>">
+                    <button type="submit">Apply Now</button>
+                </form>
+            <?php endif;
+
+        elseif (!isset($_SESSION['role'])): ?>
             <p style="margin-top:10px;">
                 <a href="login.php">Log in</a> to apply for this job.
             </p>
         <?php endif; ?>
+
     </div>
 </main>
 
@@ -125,4 +138,3 @@ $job = $result->fetch_assoc();
 
 </body>
 </html>
-
