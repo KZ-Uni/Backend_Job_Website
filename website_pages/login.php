@@ -1,5 +1,6 @@
 <?php
 session_start();
+include('timeout_check.php');
 include('db.php');
 
 if (!empty($_POST)) {
@@ -89,5 +90,3 @@ $conn->close();
     </footer>
 </body>
 </html>
-
-
