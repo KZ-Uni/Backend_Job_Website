@@ -64,10 +64,12 @@ CREATE TABLE IF NOT EXISTS applications (
     user_id INT NOT NULL,
     job_id INT NOT NULL,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('Pending','Filtered','Interview','Accepted','Rejected') DEFAULT 'Pending',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 ");
+
 
 /* ---------------------------------------------------------
    5. AUTO‑CREATE DEFAULT USERS IF THEY DO NOT EXIST
