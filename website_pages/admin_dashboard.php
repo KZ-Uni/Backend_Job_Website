@@ -67,7 +67,6 @@ $applications = $conn->query("
                 <h4><?php echo $j['title']; ?></h4>
                 <p><strong>Company:</strong> <?php echo $j['company']; ?></p>
 
-                <!-- NEW: Edit Job link added -->
                 <a href="edit_job.php?id=<?php echo $j['id']; ?>">Edit Job</a> | 
                 <a href="delete_job.php?id=<?php echo $j['id']; ?>">Delete Job</a>
             </div>
@@ -93,6 +92,10 @@ $applications = $conn->query("
                     <p>
                         <strong>Applied at:</strong> <?php echo $a['applied_at']; ?>
                     </p>
+
+                    <!-- NEW: Delete Application link added -->
+                    <a href="delete_applications.php?id=<?php echo $a['id']; ?>">Delete Application</a>
+
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
