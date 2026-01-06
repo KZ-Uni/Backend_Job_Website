@@ -9,12 +9,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Jobseeker') {
 
 $user_id = $_SESSION['user_id'];
 
-$applications = $conn->query("
-    SELECT jobs.* FROM applications
+// Fetch applications WITH STATUS + APPLIED DATE
+$applications = $conn->prepare("
+    SELECT jobs.*, applications.status, applications.applied_at
+    FROM applications
     JOIN jobs ON applications.job_id = jobs.id
-    WHERE applications.user_id = $user_id
+    WHERE applications.user_id = ?
+    ORDER BY applications.applied_at DESC
 ");
+$applications->bind_param("i", $user_id);
+$applications->execute();
+$appResults = $applications->get_result();
 
+// Fetch all jobs
 $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
 ?>
 <!DOCTYPE html>
@@ -22,6 +29,21 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
 <head>
     <title>Jobseeker Dashboard</title>
     <link rel="stylesheet" href="../css/style.css">
+
+    <style>
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: white;
+        }
+
+        .Pending { background: gray; }
+        .Filtered { background: #6c757d; }
+        .Interview { background: #17a2b8; }
+        .Accepted { background: green; }
+        .Rejected { background: red; }
+    </style>
 </head>
 <body>
 
@@ -42,11 +64,21 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
     <div class="container" style="width:80%; margin:30px auto;">
 
         <h2>Jobs You Applied To</h2>
-        <?php if ($applications->num_rows > 0): ?>
-            <?php while($job = $applications->fetch_assoc()): ?>
+
+        <?php if ($appResults->num_rows > 0): ?>
+            <?php while($job = $appResults->fetch_assoc()): ?>
                 <div class="job-item">
-                    <h4><?php echo $job['title']; ?></h4>
-                    <p><strong>Company:</strong> <?php echo $job['company']; ?></p>
+                    <h4><?php echo htmlspecialchars($job['title']); ?></h4>
+                    <p><strong>Company:</strong> <?php echo htmlspecialchars($job['company']); ?></p>
+                    <p><strong>Applied on:</strong> <?php echo htmlspecialchars($job['applied_at']); ?></p>
+
+                    <p>
+                        <strong>Status:</strong>
+                        <span class="status-badge <?php echo $job['status']; ?>">
+                            <?php echo $job['status']; ?>
+                        </span>
+                    </p>
+
                     <a href="job_details.php?id=<?php echo $job['id']; ?>">View Job</a>
                 </div>
             <?php endwhile; ?>
@@ -55,10 +87,11 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
         <?php endif; ?>
 
         <h2 style="margin-top:40px;">Browse All Jobs</h2>
+
         <?php while($job = $jobs->fetch_assoc()): ?>
             <div class="job-item">
-                <h4><?php echo $job['title']; ?></h4>
-                <p><strong>Company:</strong> <?php echo $job['company']; ?></p>
+                <h4><?php echo htmlspecialchars($job['title']); ?></h4>
+                <p><strong>Company:</strong> <?php echo htmlspecialchars($job['company']); ?></p>
                 <a href="job_details.php?id=<?php echo $job['id']; ?>">View Job</a>
             </div>
         <?php endwhile; ?>
@@ -72,4 +105,3 @@ $jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
 
 </body>
 </html>
-
