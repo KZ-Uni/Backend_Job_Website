@@ -45,6 +45,7 @@ $result = $conn->query($sql);
                 <li><a href="index.php">Home</a></li>
                 <li>Hello, <?php echo htmlspecialchars($_SESSION['username']); ?></li>
                 <li><a href="add_job.php">Post Job</a></li>
+                <li><a href="profile.php">Profile</a></li>
                 <li><a href="logout.php">Logout</a></li>
             </ul>
         </nav>
