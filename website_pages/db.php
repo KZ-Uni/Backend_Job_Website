@@ -71,18 +71,16 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB;
 ");
 
-/* USER_SKILLS TABLE (many-to-many users ↔ skills_master) */
 $conn->query("
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS user_skills (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('Admin','Employer','Jobseeker') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    user_id INT NOT NULL,
+    skill_id INT NOT NULL,
+    UNIQUE KEY user_skill_unique (user_id, skill_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (skill_id) REFERENCES skills_master(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 ");
-
 /* JOBS TABLE */
 $conn->query("
 CREATE TABLE IF NOT EXISTS jobs (
@@ -426,9 +424,15 @@ function createDefaultUser($conn, $username, $email, $password, $role)
     }
 }
 
-createDefaultUser($conn, "admin1", "admin1@example.com", "admin1", "Admin");
-createDefaultUser($conn, "employer1", "employer1@example.com", "employer1", "Employer");
-createDefaultUser($conn, "jobseeker1", "jobseeker1@example.com", "jobseeker1", "Jobseeker");
+// Count users
+$checkUsers = $conn->query("SELECT COUNT(*) AS total FROM users");
+$row = $checkUsers->fetch_assoc();
+
+if ($row['total'] == 0) {
+    createDefaultUser($conn, "admin1", "admin1@example.com", "admin1", "Admin");
+    createDefaultUser($conn, "employer1", "employer1@example.com", "employer1", "Employer");
+    createDefaultUser($conn, "jobseeker1", "jobseeker1@example.com", "jobseeker1", "Jobseeker");
+}
 
 /* ---------------------------------------------------------
    9. CREATE DEFAULT JOBS IF NONE EXIST
