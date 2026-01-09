@@ -73,7 +73,7 @@ $applications = $conn->query("
                 <p><strong>Company:</strong> <?php echo $j['company']; ?></p>
 
                 <a href="edit_job.php?id=<?php echo $j['id']; ?>">Edit Job</a> | 
-                <a href="delete_job.php?id=<?php echo $j['id']; ?>">Delete Job</a>
+                <a href="delete_job_admin.php?id=<?php echo $j['id']; ?>">Delete Job</a>
             </div>
         <?php endwhile; ?>
 
@@ -163,3 +163,4 @@ $applications = $conn->query("
 
 </body>
 </html>
+
