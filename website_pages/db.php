@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS user_skills (
     FOREIGN KEY (skill_id) REFERENCES skills_master(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 ");
+
 /* JOBS TABLE */
 $conn->query("
 CREATE TABLE IF NOT EXISTS jobs (
@@ -88,11 +89,19 @@ CREATE TABLE IF NOT EXISTS jobs (
     employer_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     company VARCHAR(255) NOT NULL,
-    location VARCHAR(255) NOT NULL,
+
+    country_id INT NULL,
+    city_id INT NULL,
+
     job_type VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
+    skills_required TEXT NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE
+
+    FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE SET NULL,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 ");
 
@@ -448,16 +457,16 @@ if ($checkJobs->num_rows == 0) {
         $employer_id = (int)$emp->fetch_assoc()['id'];
 
         $conn->query("
-            INSERT INTO jobs (employer_id, title, company, location, job_type, description)
+            INSERT INTO jobs (employer_id, title, company, country_id, city_id, job_type, description, skills_required)
             VALUES
-            ($employer_id, 'Junior Web Developer', 'TechCorp', 'New York', 'Full-time',
-            'We are looking for a junior web developer to join our growing team.'),
+            ($employer_id, 'Junior Web Developer', 'TechCorp', 1, 1, 'Full-time',
+            'We are looking for a junior web developer to join our growing team.', ''),
 
-            ($employer_id, 'Graphic Designer', 'Creative Studio', 'Remote', 'Part-time',
-            'Seeking a creative graphic designer for remote freelance work.'),
+            ($employer_id, 'Graphic Designer', 'Creative Studio', 1, 1, 'Part-time',
+            'Seeking a creative graphic designer for remote freelance work.', ''),
 
-            ($employer_id, 'Marketing Assistant', 'MarketPro', 'San Francisco', 'Full-time',
-            'Assist our marketing team with campaigns, social media, and analytics.')
+            ($employer_id, 'Marketing Assistant', 'MarketPro', 1, 1, 'Full-time',
+            'Assist our marketing team with campaigns, social media, and analytics.', '')
         ");
     }
 }
