@@ -11,8 +11,19 @@ if (!isset($_GET['id'])) {
 
 $job_id = (int)$_GET['id'];
 
-// Fetch job details
-$stmt = $conn->prepare("SELECT * FROM jobs WHERE id = ?");
+/* ---------------------------------------------------------
+   FETCH JOB WITH COUNTRY + CITY
+--------------------------------------------------------- */
+$stmt = $conn->prepare("
+    SELECT 
+        jobs.*,
+        countries.name AS country_name,
+        cities.name AS city_name
+    FROM jobs
+    LEFT JOIN countries ON jobs.country_id = countries.id
+    LEFT JOIN cities ON jobs.city_id = cities.id
+    WHERE jobs.id = ?
+");
 $stmt->bind_param("i", $job_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -24,7 +35,9 @@ if ($result->num_rows === 0) {
 
 $job = $result->fetch_assoc();
 
-// Check if user already applied
+/* ---------------------------------------------------------
+   CHECK IF USER ALREADY APPLIED
+--------------------------------------------------------- */
 $alreadyApplied = false;
 
 if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
@@ -102,11 +115,31 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
 
         <div class="job-item">
             <h2><?php echo htmlspecialchars($job['title']); ?></h2>
-            <p><strong>Company:</strong> <?php echo htmlspecialchars($job['company']); ?></p>
-            <p><strong>Location:</strong> <?php echo htmlspecialchars($job['location']); ?></p>
-            <p><strong>Type:</strong> <?php echo htmlspecialchars($job['job_type']); ?></p>
-            <p><strong>Posted on:</strong> <?php echo htmlspecialchars($job['created_at']); ?></p>
+
+            <p><strong>Company:</strong> 
+                <?php echo htmlspecialchars($job['company']); ?>
+            </p>
+
+            <p><strong>Location:</strong>
+                <?php 
+                    if ($job['country_name'] || $job['city_name']) {
+                        echo htmlspecialchars($job['country_name'] . ", " . $job['city_name']);
+                    } else {
+                        echo "Not specified";
+                    }
+                ?>
+            </p>
+
+            <p><strong>Type:</strong> 
+                <?php echo htmlspecialchars($job['job_type']); ?>
+            </p>
+
+            <p><strong>Posted on:</strong> 
+                <?php echo htmlspecialchars($job['created_at']); ?>
+            </p>
+
             <hr>
+
             <p><?php echo nl2br(htmlspecialchars($job['description'])); ?></p>
         </div>
 
@@ -135,7 +168,6 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
 
     </div>
 
-    
     <div id="timeout-overlay" style="
         display:none;
         position:fixed;
@@ -147,7 +179,6 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
         z-index:9998;
     "></div>
 
-    <!-- Timeout Popup -->
     <div id="timeout-popup" style="
         display:none;
         position:fixed;
