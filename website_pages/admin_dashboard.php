@@ -3,14 +3,34 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
+// Only Admin can access this page
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: login.php");
     exit();
 }
 
+/* ---------------------------------------------------------
+   FETCH USERS
+--------------------------------------------------------- */
 $users = $conn->query("SELECT * FROM users ORDER BY id DESC");
-$jobs = $conn->query("SELECT * FROM jobs ORDER BY created_at DESC");
 
+/* ---------------------------------------------------------
+   FETCH JOBS WITH COUNTRY + CITY
+--------------------------------------------------------- */
+$jobs = $conn->query("
+    SELECT 
+        j.*,
+        c.name AS country_name,
+        ci.name AS city_name
+    FROM jobs j
+    LEFT JOIN countries c ON j.country_id = c.id
+    LEFT JOIN cities ci ON j.city_id = ci.id
+    ORDER BY j.created_at DESC
+");
+
+/* ---------------------------------------------------------
+   FETCH APPLICATIONS
+--------------------------------------------------------- */
 $applications = $conn->query("
     SELECT 
         a.id,
@@ -33,6 +53,21 @@ $applications = $conn->query("
     <?php if (isset($_SESSION['user_id'])): ?>
         <script src="../javascript/timeout.js"></script>
     <?php endif; ?>
+    <style>
+        .link-button {
+            background: none;
+            border: none;
+            color: #007BFF;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .link-button:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
 
@@ -42,7 +77,7 @@ $applications = $conn->query("
         <nav>
             <ul>
                 <li><a href="index.php">Home</a></li>
-                <li>Hello, <?php echo $_SESSION['username']; ?></li>
+                <li>Hello, <?php echo htmlspecialchars($_SESSION['username']); ?></li>
                 <li><a href="profile.php">Profile</a></li>
                 <li><a href="logout.php">Logout</a></li>
             </ul>
@@ -57,7 +92,7 @@ $applications = $conn->query("
         <h2>All Users</h2>
         <?php while($u = $users->fetch_assoc()): ?>
             <div class="job-item">
-                <p><strong><?php echo $u['username']; ?></strong> (<?php echo $u['role']; ?>)</p>
+                <p><strong><?php echo htmlspecialchars($u['username']); ?></strong> (<?php echo htmlspecialchars($u['role']); ?>)</p>
 
                 <a href="edit_user_role.php?id=<?php echo $u['id']; ?>">Edit Role</a> | 
                 <a href="delete_user.php?id=<?php echo $u['id']; ?>">Delete User</a>
@@ -69,11 +104,33 @@ $applications = $conn->query("
         <h2 style="margin-top:40px;">All Jobs</h2>
         <?php while($j = $jobs->fetch_assoc()): ?>
             <div class="job-item">
-                <h4><?php echo $j['title']; ?></h4>
-                <p><strong>Company:</strong> <?php echo $j['company']; ?></p>
+                <h4><?php echo htmlspecialchars($j['title']); ?></h4>
+
+                <p><strong>Company:</strong> <?php echo htmlspecialchars($j['company']); ?></p>
+
+                <p><strong>Location:</strong>
+                    <?php 
+                        if ($j['country_name'] || $j['city_name']) {
+                            echo htmlspecialchars($j['country_name'] . ", " . $j['city_name']);
+                        } else {
+                            echo "Not specified";
+                        }
+                    ?>
+                </p>
+
+                <p><strong>Type:</strong> <?php echo htmlspecialchars($j['job_type']); ?></p>
+
+                <p><strong>Posted:</strong> <?php echo htmlspecialchars($j['created_at']); ?></p>
 
                 <a href="edit_job.php?id=<?php echo $j['id']; ?>">Edit Job</a> | 
-                <a href="delete_job_admin.php?id=<?php echo $j['id']; ?>">Delete Job</a>
+
+                <form action="delete_job.php" method="POST" class="inline-form" style="display:inline;">
+                    <input type="hidden" name="id" value="<?php echo (int)$j['id']; ?>">
+                    <button type="submit" class="link-button" onclick="return confirm('Delete this job?');">
+                        Delete Job
+                    </button>
+                </form>
+
             </div>
         <?php endwhile; ?>
 
@@ -95,11 +152,16 @@ $applications = $conn->query("
                         at <?php echo htmlspecialchars($a['job_company']); ?>
                     </p>
                     <p>
-                        <strong>Applied at:</strong> <?php echo $a['applied_at']; ?>
+                        <strong>Applied at:</strong> <?php echo htmlspecialchars($a['applied_at']); ?>
                     </p>
 
-                    <!-- NEW: Delete Application link added -->
-                    <a href="delete_applications.php?id=<?php echo $a['id']; ?>">Delete Application</a>
+                    <!-- Delete Application (POST) -->
+                    <form action="delete_application.php" method="POST" class="inline-form">
+                        <input type="hidden" name="id" value="<?php echo (int)$a['id']; ?>">
+                        <button type="submit" class="link-button" onclick="return confirm('Delete this application?');">
+                            Delete Application
+                        </button>
+                    </form>
 
                 </div>
             <?php endwhile; ?>
@@ -108,8 +170,7 @@ $applications = $conn->query("
         <?php endif; ?>
 
     </div>
-    
-    
+
     <div id="timeout-overlay" style="
         display:none;
         position:fixed;
@@ -121,7 +182,6 @@ $applications = $conn->query("
         z-index:9998;
     "></div>
 
-    <!-- Timeout Popup -->
     <div id="timeout-popup" style="
         display:none;
         position:fixed;
@@ -163,4 +223,3 @@ $applications = $conn->query("
 
 </body>
 </html>
-
