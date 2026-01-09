@@ -78,7 +78,15 @@ $user = $stmt->get_result()->fetch_assoc();
         <h1>Your Profile</h1>
         <nav>
             <ul>
-                <li><a href="index.php">Dashboard</a></li>
+                <li>
+                    <?php if ($_SESSION['role'] === 'Jobseeker'): ?>
+                        <a href="jobseeker_dashboard.php">Dashboard</a>
+                    <?php elseif ($_SESSION['role'] === 'Employer'): ?>
+                        <a href="employer_dashboard.php">Dashboard</a>
+                    <?php elseif ($_SESSION['role'] === 'Admin'): ?>
+                        <a href="admin_dashboard.php">Dashboard</a>
+                    <?php endif; ?>
+                </li>
                 <li>Hello, <?php echo $_SESSION['username']; ?></li>
                 <li><a href="logout.php">Logout</a></li>
             </ul>
@@ -155,3 +163,4 @@ $user = $stmt->get_result()->fetch_assoc();
 
 </body>
 </html>
+
