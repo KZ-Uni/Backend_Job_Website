@@ -68,32 +68,88 @@ if ($user['role'] === 'Admin') $dashboardLink = "admin_dashboard.php";
     </style>
 
     <script>
-    function loadCities(countryId, selectedCity = null) {
-        if (!countryId) {
-            document.getElementById("city").innerHTML = "<option value=''>Select country first</option>";
-            return;
+        // Load user's existing skills
+        fetch("load_user_skills.php")
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(skill => addSkillTag(skill.id, skill.name));
+                updateHiddenField();
+            });
+
+        const input = document.getElementById("skill-input");
+        const suggestionsBox = document.getElementById("skill-suggestions");
+        let selectedSkills = [];
+
+        input.addEventListener("input", function () {
+            const query = this.value.trim();
+            if (query.length < 1) {
+                suggestionsBox.style.display = "none";
+                return;
+            }
+
+            fetch("search_skills.php?q=" + encodeURIComponent(query))
+                .then(res => res.json())
+                .then(skills => {
+                    suggestionsBox.innerHTML = "";
+                    suggestionsBox.style.display = "block";
+
+                    skills.forEach(skill => {
+                        const div = document.createElement("div");
+                        div.textContent = skill.name;
+                        div.style.padding = "8px";
+                        div.style.cursor = "pointer";
+
+                        div.onclick = () => {
+                            addSkillTag(skill.id, skill.name);
+                            updateHiddenField();
+                            suggestionsBox.style.display = "none";
+                            input.value = "";
+                        };
+
+                        suggestionsBox.appendChild(div);
+                    });
+                });
+        });
+
+        // Add skill on Enter
+        input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                suggestionsBox.style.display = "none";
+            }
+        });
+
+        function addSkillTag(id, name) {
+            if (selectedSkills.some(s => s.id == id)) return;
+
+            selectedSkills.push({ id, name });
+
+            const tag = document.createElement("div");
+            tag.className = "skill-tag";
+            tag.style.padding = "6px 10px";
+            tag.style.background = "#007BFF";
+            tag.style.color = "white";
+            tag.style.borderRadius = "20px";
+            tag.style.display = "flex";
+            tag.style.alignItems = "center";
+            tag.style.gap = "6px";
+
+            tag.innerHTML = `${name} <span style="cursor:pointer; font-weight:bold;">×</span>`;
+
+            tag.querySelector("span").onclick = () => {
+                selectedSkills = selectedSkills.filter(s => s.id != id);
+                tag.remove();
+                updateHiddenField();
+            };
+
+            document.getElementById("selected-skills").appendChild(tag);
         }
 
-        fetch("get_cities.php?country_id=" + countryId)
-            .then(response => response.json())
-            .then(data => {
-                let cityDropdown = document.getElementById("city");
-                cityDropdown.innerHTML = "";
-
-                data.forEach(city => {
-                    let option = document.createElement("option");
-                    option.value = city.id;
-                    option.textContent = city.name;
-
-                    if (selectedCity && selectedCity == city.id) {
-                        option.selected = true;
-                    }
-
-                    cityDropdown.appendChild(option);
-                });
-            });
-    }
+        function updateHiddenField() {
+            document.getElementById("skill_ids").value = selectedSkills.map(s => s.id).join(",");
+        }
     </script>
+
 
 </head>
 <body>
@@ -153,9 +209,27 @@ if ($user['role'] === 'Admin') $dashboardLink = "admin_dashboard.php";
         </script>
 
         <?php if ($user['role'] === 'Jobseeker'): ?>
-            <label>Skills</label>
-            <textarea name="skills" rows="4"><?php echo htmlspecialchars($user['skills']); ?></textarea>
+
+        <label>Skills</label>
+
+        <div id="skills-container" style="border:1px solid #ccc; padding:10px; border-radius:6px;">
+            <div id="selected-skills" style="margin-bottom:10px; display:flex; flex-wrap:wrap; gap:8px;">
+                <!-- Filled by JS -->
+            </div>
+
+            <input type="text" id="skill-input" placeholder="Type a skill..." 
+                style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px;">
+
+            <div id="skill-suggestions" 
+                style="border:1px solid #ccc; border-top:none; display:none; background:white; position:absolute; z-index:10; width:55%;">
+            </div>
+
+            <!-- Hidden field to store selected skill IDs -->
+            <input type="hidden" name="skill_ids" id="skill_ids">
+        </div>
+
         <?php endif; ?>
+
 
         <label>New Password (optional)</label>
         <input type="password" name="password">
