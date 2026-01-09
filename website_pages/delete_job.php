@@ -9,20 +9,27 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Admin', 'Empl
     exit();
 }
 
-if (!isset($_GET['id'])) {
-    header("Location: admin_dashboard.php");
+// DELETE USES POST, NOT GET
+if (!isset($_POST['id'])) {
+    if ($_SESSION['role'] === 'Admin') {
+        header("Location: admin_dashboard.php");
+    } else {
+        header("Location: employer_dashboard.php");
+    }
     exit();
 }
 
-$job_id = (int)$_GET['id'];
+$job_id = (int)$_POST['id'];
 $user_id = (int)$_SESSION['user_id'];
-$role = $_SESSION['role'];
+$role    = $_SESSION['role'];
 
-// Fetch job info
-$check = $conn->query("SELECT employer_id FROM jobs WHERE id = $job_id");
+// First check that the job exists
+$stmt = $conn->prepare("SELECT employer_id FROM jobs WHERE id = ?");
+$stmt->bind_param("i", $job_id);
+$stmt->execute();
+$res  = $stmt->get_result();
 
-if ($check->num_rows === 0) {
-    // Job doesn't exist
+if ($res->num_rows === 0) {
     if ($role === 'Admin') {
         header("Location: admin_dashboard.php?error=notfound");
     } else {
@@ -31,21 +38,28 @@ if ($check->num_rows === 0) {
     exit();
 }
 
-$job = $check->fetch_assoc();
+$job = $res->fetch_assoc();
 
-// Employers can only delete their own jobs
-if ($role === 'Employer' && $job['employer_id'] !== $user_id) {
-    header("Location: employer_dashboard.php?error=unauthorized");
+// Admin can delete any job
+if ($role === 'Admin') {
+
+    $del = $conn->prepare("DELETE FROM jobs WHERE id = ?");
+    $del->bind_param("i", $job_id);
+    $del->execute();
+
+    header("Location: admin_dashboard.php?deleted=1");
     exit();
 }
 
-// Delete the job
-$conn->query("DELETE FROM jobs WHERE id = $job_id");
+// Employer can delete only their own job
+$del = $conn->prepare("DELETE FROM jobs WHERE id = ? AND employer_id = ?");
+$del->bind_param("ii", $job_id, $user_id);
+$del->execute();
 
-// Redirect based on role
-if ($role === 'Admin') {
-    header("Location: admin_dashboard.php?deleted=1");
+if ($del->affected_rows === 0) {
+    header("Location: employer_dashboard.php?error=unauthorized");
 } else {
     header("Location: employer_dashboard.php?deleted=1");
 }
 exit();
+?>
