@@ -8,8 +8,28 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
     exit();
 }
 
-$employer_id = $_SESSION['user_id'];
-$sql = "SELECT * FROM jobs WHERE employer_id = $employer_id ORDER BY created_at DESC";
+$employer_id = (int)$_SESSION['user_id'];
+
+/* ---------------------------------------------------------
+   FETCH JOBS WITH COUNTRY + CITY NAMES
+--------------------------------------------------------- */
+$sql = "
+    SELECT 
+        jobs.id,
+        jobs.title,
+        jobs.job_type,
+        jobs.description,
+        jobs.skills_required,
+        countries.name AS country_name,
+        cities.name AS city_name,
+        jobs.created_at
+    FROM jobs
+    LEFT JOIN countries ON jobs.country_id = countries.id
+    LEFT JOIN cities ON jobs.city_id = cities.id
+    WHERE jobs.employer_id = $employer_id
+    ORDER BY jobs.created_at DESC
+";
+
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
@@ -18,7 +38,6 @@ $result = $conn->query($sql);
     <title>Employer Dashboard</title>
     <link rel="stylesheet" href="../css/style.css">
     <style>
-        /* Make the delete control look like a link */
         .link-button {
             background: none;
             border: none;
@@ -30,7 +49,15 @@ $result = $conn->query($sql);
         }
         .link-button:hover { text-decoration: underline; }
         .inline-form { display: inline; }
+        .job-item {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
     </style>
+
     <?php if (isset($_SESSION['user_id'])): ?>
         <script src="../javascript/timeout.js"></script>
     <?php endif; ?>
@@ -66,8 +93,24 @@ $result = $conn->query($sql);
             <?php while($job = $result->fetch_assoc()): ?>
                 <div class="job-item">
                     <h4><?php echo htmlspecialchars($job['title']); ?></h4>
-                    <p><strong>Location:</strong> <?php echo htmlspecialchars($job['location']); ?></p>
-                    <p><strong>Type:</strong> <?php echo htmlspecialchars($job['job_type']); ?></p>
+
+                    <p><strong>Location:</strong>
+                        <?php 
+                            if ($job['country_name'] || $job['city_name']) {
+                                echo htmlspecialchars($job['country_name'] . ", " . $job['city_name']);
+                            } else {
+                                echo "Not specified";
+                            }
+                        ?>
+                    </p>
+
+                    <p><strong>Type:</strong> 
+                        <?php echo htmlspecialchars($job['job_type']); ?>
+                    </p>
+
+                    <p><strong>Posted:</strong> 
+                        <?php echo htmlspecialchars($job['created_at']); ?>
+                    </p>
 
                     <a href="edit_job.php?id=<?php echo $job['id']; ?>">Edit</a>
                     |
@@ -95,7 +138,6 @@ $result = $conn->query($sql);
         z-index:9998;
     "></div>
 
-    <!-- Timeout Popup -->
     <div id="timeout-popup" style="
         display:none;
         position:fixed;
@@ -137,5 +179,3 @@ $result = $conn->query($sql);
 
 </body>
 </html>
-
-
