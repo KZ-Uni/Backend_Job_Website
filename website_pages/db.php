@@ -23,8 +23,9 @@ $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
    3. SELECT THE DATABASE
 --------------------------------------------------------- */
 $conn->select_db($dbname);
+
 /* ---------------------------------------------------------
-   4. CREATE TABLES IN THE CORRECT ORDER
+   4. CREATE TABLES IN CORRECT ORDER
 --------------------------------------------------------- */
 
 /* COUNTRIES TABLE */
@@ -45,6 +46,14 @@ CREATE TABLE IF NOT EXISTS cities (
 ) ENGINE=InnoDB;
 ");
 
+/* SKILLS MASTER TABLE (predefined skills) */
+$conn->query("
+CREATE TABLE IF NOT EXISTS skills_master (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+");
+
 /* USERS TABLE */
 $conn->query("
 CREATE TABLE IF NOT EXISTS users (
@@ -53,12 +62,24 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     country_id INT NULL,
     city_id INT NULL,
-    skills TEXT NULL,
+    skills TEXT NULL, -- legacy/free-text if you ever need it
     password VARCHAR(255) NOT NULL,
     role ENUM('Admin','Employer','Jobseeker') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE SET NULL,
     FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+");
+
+/* USER_SKILLS TABLE (many-to-many users ↔ skills_master) */
+$conn->query("
+CREATE TABLE IF NOT EXISTS user_skills (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    skill_id INT NOT NULL,
+    UNIQUE KEY user_skill_unique (user_id, skill_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (skill_id) REFERENCES skills_master(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 ");
 
@@ -90,7 +111,6 @@ CREATE TABLE IF NOT EXISTS applications (
 ) ENGINE=InnoDB;
 ");
 
-
 /* ---------------------------------------------------------
    5. INSERT EUROPEAN COUNTRIES IF EMPTY
 --------------------------------------------------------- */
@@ -110,7 +130,7 @@ if ($checkCountries->num_rows == 0) {
 }
 
 /* ---------------------------------------------------------
-   6. INSERT MAJOR CITIES FOR EACH COUNTRY IF EMPTY
+   6. INSERT ALL MAJOR EUROPEAN CITIES IF EMPTY
 --------------------------------------------------------- */
 $checkCities = $conn->query("SELECT id FROM cities LIMIT 1");
 
@@ -331,9 +351,68 @@ if ($checkCities->num_rows == 0) {
     ");
 }
 
+/* ---------------------------------------------------------
+   7. INSERT PREDEFINED SKILLS IF EMPTY
+--------------------------------------------------------- */
+$checkSkills = $conn->query("SELECT id FROM skills_master LIMIT 1");
+
+if ($checkSkills->num_rows == 0) {
+    $conn->query("
+        INSERT INTO skills_master (name) VALUES
+        ('PHP'),
+        ('JavaScript'),
+        ('HTML'),
+        ('CSS'),
+        ('MySQL'),
+        ('Python'),
+        ('Java'),
+        ('C#'),
+        ('C++'),
+        ('React'),
+        ('Node.js'),
+        ('Laravel'),
+        ('Symfony'),
+        ('Django'),
+        ('Flask'),
+        ('Git'),
+        ('REST APIs'),
+        ('SQL'),
+        ('NoSQL'),
+        ('Linux'),
+        ('Docker'),
+        ('Kubernetes'),
+        ('Azure'),
+        ('AWS'),
+        ('Agile'),
+        ('Scrum'),
+        ('Project Management'),
+        ('UI Design'),
+        ('UX Design'),
+        ('Figma'),
+        ('Adobe Photoshop'),
+        ('Adobe Illustrator'),
+        ('Data Analysis'),
+        ('Excel'),
+        ('Power BI'),
+        ('Machine Learning'),
+        ('Communication'),
+        ('Teamwork'),
+        ('Problem Solving'),
+        ('Time Management'),
+        ('Leadership'),
+        ('Critical Thinking'),
+        ('Public Speaking'),
+        ('Customer Service'),
+        ('Sales'),
+        ('Marketing'),
+        ('Copywriting'),
+        ('SEO'),
+        ('Content Creation')
+    ");
+}
 
 /* ---------------------------------------------------------
-   7. CREATE DEFAULT USERS IF THEY DO NOT EXIST
+   8. CREATE DEFAULT USERS IF THEY DO NOT EXIST
 --------------------------------------------------------- */
 function createDefaultUser($conn, $username, $email, $password, $role)
 {
@@ -352,7 +431,7 @@ createDefaultUser($conn, "employer1", "employer1@example.com", "employer1", "Emp
 createDefaultUser($conn, "jobseeker1", "jobseeker1@example.com", "jobseeker1", "Jobseeker");
 
 /* ---------------------------------------------------------
-   8. CREATE DEFAULT JOBS IF NONE EXIST
+   9. CREATE DEFAULT JOBS IF NONE EXIST
 --------------------------------------------------------- */
 $checkJobs = $conn->query("SELECT id FROM jobs LIMIT 1");
 
@@ -378,4 +457,5 @@ if ($checkJobs->num_rows == 0) {
         ");
     }
 }
+
 ?>
