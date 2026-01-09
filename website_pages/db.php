@@ -23,27 +23,9 @@ $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
    3. SELECT THE DATABASE
 --------------------------------------------------------- */
 $conn->select_db($dbname);
-
 /* ---------------------------------------------------------
-   4. CREATE TABLES IF NOT EXISTS
+   4. CREATE TABLES IN THE CORRECT ORDER
 --------------------------------------------------------- */
-
-/* USERS TABLE */
-$conn->query("
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    country_id INT NULL,
-    city_id INT NULL,
-    skills TEXT NULL,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('Admin','Employer','Jobseeker') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE SET NULL,
-    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
-");
 
 /* COUNTRIES TABLE */
 $conn->query("
@@ -60,6 +42,23 @@ CREATE TABLE IF NOT EXISTS cities (
     country_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+");
+
+/* USERS TABLE */
+$conn->query("
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    country_id INT NULL,
+    city_id INT NULL,
+    skills TEXT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('Admin','Employer','Jobseeker') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE SET NULL,
+    FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 ");
 
@@ -90,6 +89,7 @@ CREATE TABLE IF NOT EXISTS applications (
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 ");
+
 
 /* ---------------------------------------------------------
    5. INSERT EUROPEAN COUNTRIES IF EMPTY
