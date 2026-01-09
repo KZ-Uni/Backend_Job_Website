@@ -6,10 +6,9 @@ $dbname = "job_portal";
 $port = 3307;
 
 /* ---------------------------------------------------------
-   1. CONNECT TO MYSQL (NO DB SELECTED YET)
+   1. CONNECT TO MYSQL WITHOUT SELECTING A DATABASE
 --------------------------------------------------------- */
 $conn = new mysqli($servername, $username, $password, "", $port);
-
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
@@ -25,7 +24,7 @@ $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 $conn->select_db($dbname);
 
 /* ---------------------------------------------------------
-   4. CREATE TABLES IF NOT EXISTS
+   4. CREATE TABLES IF THEY DO NOT EXIST
 --------------------------------------------------------- */
 
 /* USERS TABLE */
@@ -34,14 +33,11 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    home_location VARCHAR(255) NULL,
-    skills TEXT NULL,
     password VARCHAR(255) NOT NULL,
     role ENUM('Admin','Employer','Jobseeker') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 ");
-
 
 /* JOBS TABLE */
 $conn->query("
@@ -72,37 +68,34 @@ CREATE TABLE IF NOT EXISTS applications (
 ");
 
 /* ---------------------------------------------------------
-   5. CREATE DEFAULT USERS IF THEY DO NOT EXIST
+   5. CREATE ONE DEFAULT ADMIN IF NONE EXISTS
 --------------------------------------------------------- */
-function createDefaultUser($conn, $username, $email, $password, $role)
-{
-    $check = $conn->query("SELECT id FROM users WHERE username='$username' OR email='$email'");
-    if ($check->num_rows == 0) {
-        $hashed = password_hash($password, PASSWORD_BCRYPT);
-        $conn->query("
-            INSERT INTO users (username, email, password, role)
-            VALUES ('$username', '$email', '$hashed', '$role')
-        ");
-    }
+$checkAdmin = $conn->query("SELECT id FROM users WHERE role='Admin' LIMIT 1");
+
+if ($checkAdmin->num_rows == 0) {
+    $hashed = password_hash("admin1", PASSWORD_BCRYPT);
+    $conn->query("
+        INSERT INTO users (username, email, password, role)
+        VALUES ('admin1', 'admin1@example.com', '$hashed', 'Admin')
+    ");
 }
 
-createDefaultUser($conn, "admin1", "admin1@example.com", "admin1", "Admin");
-createDefaultUser($conn, "employer1", "employer1@example.com", "employer1", "Employer");
-createDefaultUser($conn, "jobseeker1", "jobseeker1@example.com", "jobseeker1", "Jobseeker");
-
 /* ---------------------------------------------------------
-   6. CREATE DEFAULT JOBS IF NONE EXIST
+   6. OPTIONAL: CREATE SAMPLE JOBS ONLY ONCE
 --------------------------------------------------------- */
+
 $checkJobs = $conn->query("SELECT id FROM jobs LIMIT 1");
 
 if ($checkJobs->num_rows == 0) {
 
+    // Find any employer
     $emp = $conn->query("SELECT id FROM users WHERE role='Employer' LIMIT 1");
 
     if ($emp && $emp->num_rows > 0) {
 
         $employer_id = (int)$emp->fetch_assoc()['id'];
 
+        // Insert sample jobs
         $conn->query("
             INSERT INTO jobs (employer_id, title, company, location, job_type, description)
             VALUES
