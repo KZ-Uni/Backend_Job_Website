@@ -3,49 +3,126 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
-// Only allow Employers
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
+// Allow BOTH Admin and Employer
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['Admin', 'Employer'])) {
     header("Location: login.php");
     exit();
 }
 
-$employer_id = (int)$_SESSION['user_id'];
+$role = $_SESSION['role'];
+$user_id = (int)$_SESSION['user_id'];
 
 // Check if job ID is provided
 if (!isset($_GET['id'])) {
-    header("Location: employer_dashboard.php?error=noid");
+    $redirect = ($role === 'Admin') ? "admin_dashboard.php" : "employer_dashboard.php";
+    header("Location: $redirect?error=noid");
     exit();
 }
 
 $job_id = (int)$_GET['id'];
 
-// Fetch job details (ensure it belongs to this employer)
-$stmt = $conn->prepare("SELECT * FROM jobs WHERE id = ? AND employer_id = ?");
-$stmt->bind_param("ii", $job_id, $employer_id);
+/* ---------------------------------------------------------
+   FETCH JOB
+   Admin → can edit ANY job
+   Employer → can edit ONLY their own job
+--------------------------------------------------------- */
+if ($role === 'Admin') {
+    $stmt = $conn->prepare("SELECT * FROM jobs WHERE id = ?");
+    $stmt->bind_param("i", $job_id);
+} else {
+    $stmt = $conn->prepare("SELECT * FROM jobs WHERE id = ? AND employer_id = ?");
+    $stmt->bind_param("ii", $job_id, $user_id);
+}
+
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    header("Location: employer_dashboard.php?error=notfound");
+    $redirect = ($role === 'Admin') ? "admin_dashboard.php" : "employer_dashboard.php";
+    header("Location: $redirect?error=notfound");
     exit();
 }
 
 $job = $result->fetch_assoc();
 $message = "";
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title       = $_POST['title'];
-    $company     = $_POST['company'];
-    $location    = $_POST['location'];
-    $job_type    = $_POST['job_type'];
-    $description = $_POST['description'];
+/* ---------------------------------------------------------
+   FETCH COUNTRIES
+--------------------------------------------------------- */
+$countries = $conn->query("SELECT id, name FROM countries ORDER BY name ASC");
 
-    $update = $conn->prepare("UPDATE jobs SET title=?, company=?, location=?, job_type=?, description=? WHERE id=? AND employer_id=?");
-    $update->bind_param("ssssiii", $title, $company, $location, $job_type, $description, $job_id, $employer_id);
+/* ---------------------------------------------------------
+   FETCH SKILLS
+--------------------------------------------------------- */
+$skillsMaster = [];
+$skillsResult = $conn->query("SELECT id, name FROM skills_master ORDER BY name ASC");
+while ($row = $skillsResult->fetch_assoc()) {
+    $skillsMaster[] = $row;
+}
+
+$selectedSkills = explode(",", $job['skills_required']);
+
+/* ---------------------------------------------------------
+   HANDLE UPDATE
+--------------------------------------------------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $title       = $conn->real_escape_string($_POST['title']);
+    $company     = $conn->real_escape_string($_POST['company']);
+    $country_id  = (int)$_POST['country_id'];
+    $city_id     = (int)$_POST['city_id'];
+    $job_type    = $conn->real_escape_string($_POST['job_type']);
+    $description = $conn->real_escape_string($_POST['description']);
+    $skills_required = $_POST['skill_ids'] ?? "";
+
+    /* ---------------------------------------------------------
+       UPDATE QUERY
+       Admin → update ANY job
+       Employer → update ONLY their own job
+    --------------------------------------------------------- */
+    if ($role === 'Admin') {
+        $update = $conn->prepare("
+            UPDATE jobs 
+            SET title=?, company=?, country_id=?, city_id=?, job_type=?, description=?, skills_required=?
+            WHERE id=?
+        ");
+
+        $update->bind_param(
+            "ssiisssi",
+            $title,
+            $company,
+            $country_id,
+            $city_id,
+            $job_type,
+            $description,
+            $skills_required,
+            $job_id
+        );
+
+    } else {
+        $update = $conn->prepare("
+            UPDATE jobs 
+            SET title=?, company=?, country_id=?, city_id=?, job_type=?, description=?, skills_required=?
+            WHERE id=? AND employer_id=?
+        ");
+
+        $update->bind_param(
+            "ssiisssii",
+            $title,
+            $company,
+            $country_id,
+            $city_id,
+            $job_type,
+            $description,
+            $skills_required,
+            $job_id,
+            $user_id
+        );
+    }
 
     if ($update->execute()) {
-        header("Location: employer_dashboard.php?updated=1");
+        $redirect = ($role === 'Admin') ? "admin_dashboard.php" : "employer_dashboard.php";
+        header("Location: $redirect?updated=1");
         exit();
     } else {
         $message = "<p style='color:red;'>Error updating job: " . $conn->error . "</p>";
@@ -57,11 +134,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <title>Edit Job</title>
     <link rel="stylesheet" href="../css/style.css">
+
     <?php if (isset($_SESSION['user_id'])): ?>
         <script src="../javascript/timeout.js"></script>
     <?php endif; ?>
+
+    <script>
+    function loadCities(countryId, selectedCity = null) {
+        const cityDropdown = document.getElementById("city");
+
+        fetch("get_cities.php?country_id=" + countryId)
+            .then(res => res.json())
+            .then(data => {
+                cityDropdown.innerHTML = "";
+                data.forEach(city => {
+                    const opt = document.createElement("option");
+                    opt.value = city.id;
+                    opt.textContent = city.name;
+                    if (selectedCity && selectedCity == city.id) opt.selected = true;
+                    cityDropdown.appendChild(opt);
+                });
+            });
+    }
+    </script>
+
+    <style>
+        .skills-wrapper { margin-top: 10px; }
+        .skills-input-container { position: relative; }
+        #skill-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        #skills-suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: white; border: 1px solid #ccc; border-top: none;
+            max-height: 180px; overflow-y: auto; display: none; z-index: 9999;
+        }
+        #skills-suggestions div { padding: 8px; cursor: pointer; }
+        #skills-suggestions div:hover { background: #f0f0f0; }
+        #skills-tags { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .skill-tag {
+            background: #f2f2f2; border: 1px solid #ccc; border-radius: 16px;
+            padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .skill-tag button {
+            background: none; border: none; cursor: pointer; color: #666; font-size: 14px;
+        }
+    </style>
 </head>
 <body>
+
 <header>
     <div class="container">
         <h1>Edit Job</h1>
@@ -78,82 +197,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container" style="width:60%; margin:30px auto;">
         <h2>Edit Job Listing</h2>
         <?php echo $message; ?>
+
         <form action="edit_job.php?id=<?php echo $job_id; ?>" method="POST" class="signup-form">
-            <label for="title">Job Title</label>
-            <input type="text" id="title" name="title" value="<?php echo htmlspecialchars($job['title']); ?>" required>
 
-            <label for="company">Company</label>
-            <input type="text" id="company" name="company" value="<?php echo htmlspecialchars($job['company']); ?>" required>
+            <label>Job Title</label>
+            <input type="text" name="title" value="<?php echo htmlspecialchars($job['title']); ?>" required>
 
-            <label for="location">Location</label>
-            <input type="text" id="location" name="location" value="<?php echo htmlspecialchars($job['location']); ?>" required>
+            <label>Company</label>
+            <input type="text" name="company" value="<?php echo htmlspecialchars($job['company']); ?>" required>
 
-            <label for="job_type">Job Type</label>
-            <select id="job_type" name="job_type" required>
-                <option value="Full-time" <?php if($job['job_type']=="Full-time") echo "selected"; ?>>Full-time</option>
-                <option value="Part-time" <?php if($job['job_type']=="Part-time") echo "selected"; ?>>Part-time</option>
-                <option value="Internship" <?php if($job['job_type']=="Internship") echo "selected"; ?>>Internship</option>
-                <option value="Remote" <?php if($job['job_type']=="Remote") echo "selected"; ?>>Remote</option>
+            <label>Country</label>
+            <select name="country_id" onchange="loadCities(this.value)" required>
+                <option value="">Select Country</option>
+                <?php foreach ($countries as $c): ?>
+                    <option value="<?= $c['id'] ?>" <?= $c['id']==$job['country_id'] ? "selected" : "" ?>>
+                        <?= $c['name'] ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
 
-            <label for="description">Description</label>
-            <textarea id="description" name="description" rows="5" cols="47" required><?php echo htmlspecialchars($job['description']); ?></textarea>
+            <label>City</label>
+            <select name="city_id" id="city" required></select>
+
+            <script>
+                loadCities(<?= $job['country_id'] ?>, <?= $job['city_id'] ?>);
+            </script>
+
+            <label>Job Type</label>
+            <select name="job_type" required>
+                <option value="Full-time"   <?= $job['job_type']=="Full-time" ? "selected" : "" ?>>Full-time</option>
+                <option value="Part-time"   <?= $job['job_type']=="Part-time" ? "selected" : "" ?>>Part-time</option>
+                <option value="Remote"      <?= $job['job_type']=="Remote" ? "selected" : "" ?>>Remote</option>
+                <option value="Internship"  <?= $job['job_type']=="Internship" ? "selected" : "" ?>>Internship</option>
+                <option value="Contract"    <?= $job['job_type']=="Contract" ? "selected" : "" ?>>Contract</option>
+            </select>
+
+            <label>Description</label>
+            <textarea name="description" rows="5" cols="47" required><?php echo htmlspecialchars($job['description']); ?></textarea>
+
+            <label>Required Skills</label>
+            <div class="skills-wrapper">
+                <div class="skills-input-container">
+                    <input type="text" id="skill-input" placeholder="Type a skill..." autocomplete="off">
+                    <div id="skills-suggestions"></div>
+                </div>
+                <div id="skills-tags"></div>
+                <input type="hidden" name="skill_ids" id="skill_ids">
+            </div>
+
+            <script>
+            const allSkills = <?= json_encode($skillsMaster) ?>;
+            let selectedSkills = <?= json_encode($selectedSkills) ?>.map(id => parseInt(id));
+
+            const skillInput = document.getElementById("skill-input");
+            const suggestionsBox = document.getElementById("skills-suggestions");
+            const tagsContainer = document.getElementById("skills-tags");
+            const hiddenInput = document.getElementById("skill_ids");
+
+            function renderTags() {
+                tagsContainer.innerHTML = "";
+                selectedSkills.forEach(id => {
+                    const skill = allSkills.find(s => s.id == id);
+                    if (!skill) return;
+
+                    const tag = document.createElement("div");
+                    tag.className = "skill-tag";
+                    tag.innerHTML = `${skill.name} <button data-id="${skill.id}">&times;</button>`;
+                    tagsContainer.appendChild(tag);
+                });
+                hiddenInput.value = selectedSkills.join(",");
+            }
+
+            renderTags();
+
+            skillInput.addEventListener("input", () => {
+                const q = skillInput.value.toLowerCase();
+                if (!q) {
+                    suggestionsBox.style.display = "none";
+                    return;
+                }
+
+                const filtered = allSkills.filter(s =>
+                    s.name.toLowerCase().includes(q) &&
+                    !selectedSkills.includes(s.id)
+                );
+
+                suggestionsBox.innerHTML = "";
+                filtered.forEach(skill => {
+                    const div = document.createElement("div");
+                    div.textContent = skill.name;
+                    div.dataset.id = skill.id;
+                    div.onclick = () => {
+                        selectedSkills.push(skill.id);
+                        renderTags();
+                        skillInput.value = "";
+                        suggestionsBox.style.display = "none";
+                    };
+                    suggestionsBox.appendChild(div);
+                });
+
+                suggestionsBox.style.display = filtered.length ? "block" : "none";
+            });
+
+            tagsContainer.addEventListener("click", e => {
+                if (e.target.tagName === "BUTTON") {
+                    const id = parseInt(e.target.dataset.id);
+                    selectedSkills = selectedSkills.filter(s => s !== id);
+                    renderTags();
+                }
+            });
+            </script>
 
             <button type="submit">Update Job</button>
         </form>
     </div>
-
-    
-    <div id="timeout-overlay" style="
-        display:none;
-        position:fixed;
-        top:0;
-        left:0;
-        width:100%;
-        height:100%;
-        background:rgba(0,0,0,0.5);
-        z-index:9998;
-    "></div>
-
-    <!-- Timeout Popup -->
-    <div id="timeout-popup" style="
-        display:none;
-        position:fixed;
-        top:50%;
-        left:50%;
-        transform:translate(-50%, -50%);
-        background:white;
-        padding:25px 30px;
-        width:320px;
-        border-radius:12px;
-        box-shadow:0 8px 25px rgba(0,0,0,0.25);
-        z-index:9999;
-        text-align:center;
-        opacity:0;
-        transition:opacity 0.3s ease;
-    ">
-        <h3 style="margin-top:0; font-size:20px; color:#333;">Session Timeout</h3>
-        <p style="font-size:14px; color:#555; margin-bottom:20px;">
-            You’ve been inactive for a while.  
-            You will be logged out soon.
-        </p>
-
-        <button onclick="stayLoggedIn()" style="
-            padding:10px 18px;
-            background:#007BFF;
-            color:white;
-            border:none;
-            border-radius:6px;
-            font-size:14px;
-            cursor:pointer;
-            width:100%;
-        ">Stay Logged In</button>
-    </div>
 </main>
-
 
 <footer>
     <p>&copy; 2025 Job Portal. All rights reserved.</p>
 </footer>
+
 </body>
 </html>
