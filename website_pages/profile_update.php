@@ -17,7 +17,11 @@ $city_id = intval($_POST['city_id']);
 $password = $_POST['password'] ?? '';
 $role = $_SESSION['role'];
 
-$skills = ($role === 'Jobseeker' && isset($_POST['skills'])) ? trim($_POST['skills']) : null;
+// Only jobseekers use the new skill system
+$skill_ids = isset($_POST['skill_ids']) ? explode(",", $_POST['skill_ids']) : [];
+
+// Remove empty values
+$skill_ids = array_filter($skill_ids, function($v) { return $v !== ""; });
 
 // Check duplicates
 $check = $conn->prepare("SELECT id FROM users WHERE (username=? OR email=?) AND id != ?");
@@ -35,36 +39,58 @@ if (!empty($password)) {
     $hashed = null;
 }
 
-if ($role === 'Jobseeker') {
-    if ($hashed) {
-        $stmt = $conn->prepare("
-            UPDATE users SET username=?, email=?, country_id=?, city_id=?, skills=?, password=? WHERE id=?
-        ");
-        $stmt->bind_param("ssisssi", $username, $email, $country_id, $city_id, $skills, $hashed, $user_id);
-    } else {
-        $stmt = $conn->prepare("
-            UPDATE users SET username=?, email=?, country_id=?, city_id=?, skills=? WHERE id=?
-        ");
-        $stmt->bind_param("ssissi", $username, $email, $country_id, $city_id, $skills, $user_id);
-    }
+/* ---------------------------------------------------------
+   UPDATE USER PROFILE
+--------------------------------------------------------- */
+
+if ($hashed) {
+    $stmt = $conn->prepare("
+        UPDATE users 
+        SET username=?, email=?, country_id=?, city_id=?, password=? 
+        WHERE id=?
+    ");
+    $stmt->bind_param("ssissi", $username, $email, $country_id, $city_id, $hashed, $user_id);
 } else {
-    if ($hashed) {
-        $stmt = $conn->prepare("
-            UPDATE users SET username=?, email=?, country_id=?, city_id=?, password=? WHERE id=?
-        ");
-        $stmt->bind_param("ssissi", $username, $email, $country_id, $city_id, $hashed, $user_id);
-    } else {
-        $stmt = $conn->prepare("
-            UPDATE users SET username=?, email=?, country_id=?, city_id=? WHERE id=?
-        ");
-        $stmt->bind_param("ssisi", $username, $email, $country_id, $city_id, $user_id);
-    }
+    $stmt = $conn->prepare("
+        UPDATE users 
+        SET username=?, email=?, country_id=?, city_id=? 
+        WHERE id=?
+    ");
+    $stmt->bind_param("ssisi", $username, $email, $country_id, $city_id, $user_id);
 }
 
 $stmt->execute();
 
-// Update session username
+/* ---------------------------------------------------------
+   UPDATE SKILLS (ONLY FOR JOBSEEKERS)
+--------------------------------------------------------- */
+
+if ($role === "Jobseeker") {
+
+    // Clear old skills
+    $conn->query("DELETE FROM user_skills WHERE user_id = $user_id");
+
+    // Insert new skills
+    foreach ($skill_ids as $sid) {
+        $sid = intval($sid);
+        if ($sid > 0) {
+            $conn->query("
+                INSERT INTO user_skills (user_id, skill_id) 
+                VALUES ($user_id, $sid)
+            ");
+        }
+    }
+}
+
+/* ---------------------------------------------------------
+   UPDATE SESSION
+--------------------------------------------------------- */
+
 $_SESSION['username'] = $username;
+
+/* ---------------------------------------------------------
+   REDIRECT BACK
+--------------------------------------------------------- */
 
 header("Location: profile.php?updated=1");
 exit();
