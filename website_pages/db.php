@@ -3,7 +3,7 @@ $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "job_portal";
-$port = 3307;
+$port = 3306;
 
 /* ---------------------------------------------------------
    1. CONNECT TO MYSQL (NO DB SELECTED YET)
@@ -115,6 +115,36 @@ CREATE TABLE IF NOT EXISTS applications (
     status ENUM('Pending','Filtered','Interview','Accepted','Rejected') DEFAULT 'Pending',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+");
+/* ---------------------------------------------------------
+   MESSAGES TABLE (NO FOREIGN KEYS)
+   In‑App Messaging System
+   Employers ↔ Jobseekers
+--------------------------------------------------------- */
+
+$conn->query("
+CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT NOT NULL,      -- user sending the message
+    receiver_id INT NOT NULL,    -- user receiving the message
+    job_id INT NOT NULL,         -- job the conversation is about
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read TINYINT(1) DEFAULT 0
+) ENGINE=InnoDB;
+");
+/* ---------------------------------------------------------
+   PUBLIC CHATBOX (GLOBAL SUPPORT CHAT)
+   Everyone can post messages visible to all users.
+--------------------------------------------------------- */
+
+$conn->query("
+CREATE TABLE IF NOT EXISTS public_chat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,      -- who posted
+    message TEXT NOT NULL,
+    posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 ");
 
@@ -470,5 +500,4 @@ if ($checkJobs->num_rows == 0) {
         ");
     }
 }
-
 ?>
