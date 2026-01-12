@@ -4,34 +4,98 @@ include('timeout_check.php');
 include('db.php');
 
 /* ---------------------------------------------------------
+   FETCH COUNTRIES & SKILLS
+--------------------------------------------------------- */
+$countries = $conn->query("SELECT id, name FROM countries ORDER BY name ASC");
+
+$skillsMaster = [];
+$skillsResult = $conn->query("SELECT id, name FROM skills_master ORDER BY name ASC");
+while ($row = $skillsResult->fetch_assoc()) {
+    $skillsMaster[] = $row;
+}
+
+/* ---------------------------------------------------------
    FILTERS
 --------------------------------------------------------- */
 $where = [];
 $params = [];
 $types = "";
 
-// Location filter (country + city)
-if (!empty($_GET['location'])) {
-    $where[] = "(c.name LIKE ? OR ci.name LIKE ?)";
-    $params[] = "%" . $_GET['location'] . "%";
-    $params[] = "%" . $_GET['location'] . "%";
-    $types .= "ss";
+/* Keyword search (title only) */
+if (!empty($_GET['search'])) {
+    $where[] = "j.title LIKE ?";
+    $params[] = "%" . $_GET['search'] . "%";
+    $types .= "s";
 }
 
-// Job type filter
+/* Country filter */
+if (!empty($_GET['country'])) {
+    $where[] = "j.country_id = ?";
+    $params[] = intval($_GET['country']);
+    $types .= "i";
+}
+
+/* City filter */
+if (!empty($_GET['city'])) {
+    $where[] = "j.city_id = ?";
+    $params[] = intval($_GET['city']);
+    $types .= "i";
+}
+
+/* Job type filter */
 if (!empty($_GET['job-type'])) {
     $where[] = "j.job_type = ?";
     $params[] = $_GET['job-type'];
     $types .= "s";
 }
 
-// Category filter (skills)
-if (!empty($_GET['category'])) {
-    $where[] = "j.skills_required LIKE ?";
-    $params[] = "%" . $_GET['category'] . "%";
-    $types .= "s";
+/* MULTI-SKILL FILTER (AND LOGIC, SEARCH BY ID) */
+if (!empty($_GET['skills'])) {
+    $skillIds = explode(",", $_GET['skills']);
+
+    foreach ($skillIds as $skillId) {
+        $skillId = intval($skillId);
+
+        if ($skillId > 0) {
+            // Search for the ID inside the comma-separated string
+            $where[] = "FIND_IN_SET(?, j.skills_required)";
+            $params[] = $skillId;
+            $types .= "i";
+        }
+    }
 }
 
+
+/* ---------------------------------------------------------
+   PAGINATION
+--------------------------------------------------------- */
+$jobsPerPage = 5;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $jobsPerPage;
+
+/* Count total jobs */
+$countSql = "
+    SELECT COUNT(*) AS total
+    FROM jobs j
+    LEFT JOIN countries c ON j.country_id = c.id
+    LEFT JOIN cities ci ON j.city_id = ci.id
+";
+
+if (!empty($where)) {
+    $countSql .= " WHERE " . implode(" AND ", $where);
+}
+
+$countStmt = $conn->prepare($countSql);
+if (!empty($params)) {
+    $countStmt->bind_param($types, ...$params);
+}
+$countStmt->execute();
+$totalJobs = $countStmt->get_result()->fetch_assoc()['total'];
+$totalPages = max(1, ceil($totalJobs / $jobsPerPage));
+
+/* ---------------------------------------------------------
+   MAIN JOB QUERY
+--------------------------------------------------------- */
 $sql = "
     SELECT 
         j.*,
@@ -46,18 +110,31 @@ if (!empty($where)) {
     $sql .= " WHERE " . implode(" AND ", $where);
 }
 
-$sql .= " ORDER BY j.created_at DESC";
+$sql .= " ORDER BY j.created_at DESC LIMIT ? OFFSET ?";
+
+$mainParams = $params;
+$mainTypes = $types . "ii";
+$mainParams[] = $jobsPerPage;
+$mainParams[] = $offset;
 
 $stmt = $conn->prepare($sql);
-
-if (!empty($params)) {
-    $stmt->bind_param($types, ...$params);
-}
-
+$stmt->bind_param($mainTypes, ...$mainParams);
 $stmt->execute();
 $result = $stmt->get_result();
-?>
 
+/* Keep filters in pagination */
+function buildPageUrl($pageNum) {
+    $query = $_GET;
+    $query['page'] = $pageNum;
+    return 'index.php?' . http_build_query($query);
+}
+
+/* Restore selected values */
+$selectedCountry = $_GET['country'] ?? "";
+$selectedCity = $_GET['city'] ?? "";
+$selectedJobType = $_GET['job-type'] ?? "";
+$selectedSkills = !empty($_GET['skills']) ? explode(",", $_GET['skills']) : [];
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,13 +142,68 @@ $result = $stmt->get_result();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Portal</title>
     <link rel="stylesheet" href="../css/style.css">
-    <?php if (isset($_SESSION['user_id'])): ?>
-        <script src="../javascript/timeout.js"></script>
-    <?php endif; ?>
+
+    <style>
+        .skills-wrapper { margin-top: 10px; }
+        .skills-input-container { position: relative; }
+        #skill-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        #skills-suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: white; border: 1px solid #ccc; border-top: none;
+            max-height: 180px; overflow-y: auto; display: none; z-index: 9999;
+        }
+        #skills-suggestions div { padding: 8px; cursor: pointer; }
+        #skills-suggestions div:hover { background: #f0f0f0; }
+        #skills-tags { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .skill-tag {
+            background: #f2f2f2; border: 1px solid #ccc; border-radius: 16px;
+            padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .skill-tag button {
+            background: none; border: none; cursor: pointer; color: #666; font-size: 14px;
+        }
+    </style>
+
+    <script>
+    const preSelectedCountry = "<?php echo $selectedCountry; ?>";
+    const preSelectedCity = "<?php echo $selectedCity; ?>";
+
+    function loadCities(countryId) {
+        const citySelect = document.getElementById("city");
+        citySelect.innerHTML = "<option>Loading...</option>";
+
+        if (!countryId) {
+            citySelect.innerHTML = "<option value=''>Select a country first</option>";
+            return;
+        }
+
+        fetch("get_cities.php?country_id=" + countryId)
+            .then(res => res.json())
+            .then(data => {
+                citySelect.innerHTML = "<option value=''>Any</option>";
+                data.forEach(city => {
+                    const opt = document.createElement("option");
+                    opt.value = city.id;
+                    opt.textContent = city.name;
+
+                    if (preSelectedCity == city.id) opt.selected = true;
+
+                    citySelect.appendChild(opt);
+                });
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (preSelectedCountry) {
+            document.getElementById("country").value = preSelectedCountry;
+            loadCities(preSelectedCountry);
+        }
+    });
+    </script>
 </head>
+
 <body>
 
-<!-- Header -->
 <header>
     <div class="container">
         <h1>Job Portal</h1>
@@ -80,7 +212,7 @@ $result = $stmt->get_result();
                 <li><a href="index.php">Home</a></li>
 
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <li>Hello, <?php echo htmlspecialchars($_SESSION['username']); ?> (<?php echo htmlspecialchars($_SESSION['role']); ?>)</li>
+                    <li>Hello, <?= htmlspecialchars($_SESSION['username']) ?> (<?= htmlspecialchars($_SESSION['role']) ?>)</li>
 
                     <?php if ($_SESSION['role'] === 'Admin'): ?>
                         <li><a href="admin_dashboard.php">Dashboard</a></li>
@@ -100,6 +232,58 @@ $result = $stmt->get_result();
     </div>
 </header>
 
+
+<!--  FULL-WIDTH SEARCH BAR  -->
+<div style="
+    width:100%;
+    padding:20px 0;
+    display:flex;
+    justify-content:center;
+    background:#f8f8f8;
+    border-bottom:1px solid #ddd;
+    margin-bottom:20px;
+">
+    <form action="index.php" method="GET" style="
+        width:80%;
+        max-width:900px;
+        display:flex;
+        gap:10px;
+    ">
+        <input 
+            type="text" 
+            name="search" 
+            placeholder="Search job titles..." 
+            value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>"
+            style="
+                flex:1;
+                padding:12px 15px;
+                font-size:16px;
+                border:1px solid #ccc;
+                border-radius:6px;
+            "
+        >
+
+        <!-- Preserve all other filters -->
+        <?php foreach ($_GET as $key => $value): ?>
+            <?php if ($key !== 'search' && $key !== 'page'): ?>
+                <input type="hidden" name="<?= htmlspecialchars($key) ?>" value="<?= htmlspecialchars($value) ?>">
+            <?php endif; ?>
+        <?php endforeach; ?>
+
+        <button type="submit" style="
+            padding:12px 20px;
+            background:#007BFF;
+            color:white;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-size:16px;
+        ">Search</button>
+    </form>
+</div>
+<!--  END SEARCH BAR  -->
+
+
 <div class="main-content">
 
     <!-- Filters -->
@@ -107,33 +291,50 @@ $result = $stmt->get_result();
         <h3>Filters</h3>
         <form action="index.php" method="GET">
 
-            <label for="location">Location</label>
-            <select id="location" name="location">
+            <!--  KEEP SEARCH BAR VALUE  -->
+            <input type="hidden" name="search" 
+                   value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
+
+            <!-- Country -->
+            <label>Country</label>
+            <select id="country" name="country" onchange="loadCities(this.value)">
                 <option value="">Any</option>
-                <option value="Remote">Remote</option>
-                <option value="USA">USA</option>
-                <option value="UK">UK</option>
-                <option value="Canada">Canada</option>
+                <?php foreach ($countries as $c): ?>
+                    <option value="<?= $c['id'] ?>" <?= $selectedCountry == $c['id'] ? "selected" : "" ?>>
+                        <?= htmlspecialchars($c['name']) ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
 
-            <label for="job-type">Job Type</label>
-            <select id="job-type" name="job-type">
-                <option value="">Any</option>
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-                <option value="Internship">Internship</option>
-                <option value="Remote">Remote</option>
-                <option value="Contract">Contract</option>
+            <!-- City -->
+            <label>City</label>
+            <select id="city" name="city">
+                <option value="">Select a country first</option>
             </select>
 
-            <label for="category">Skill Category</label>
-            <select id="category" name="category">
-                <option value="">All</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Design">Design</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Sales">Sales</option>
+            <!-- Job Type -->
+            <label>Job Type</label>
+            <select name="job-type">
+                <option value="">Any</option>
+                <option value="Full-time" <?= $selectedJobType == "Full-time" ? "selected" : "" ?>>Full-time</option>
+                <option value="Part-time" <?= $selectedJobType == "Part-time" ? "selected" : "" ?>>Part-time</option>
+                <option value="Remote" <?= $selectedJobType == "Remote" ? "selected" : "" ?>>Remote</option>
+                <option value="Internship" <?= $selectedJobType == "Internship" ? "selected" : "" ?>>Internship</option>
+                <option value="Contract" <?= $selectedJobType == "Contract" ? "selected" : "" ?>>Contract</option>
             </select>
+
+            <!-- MULTI SKILL SEARCH -->
+            <label>Skills</label>
+            <div class="skills-wrapper">
+                <div class="skills-input-container">
+                    <input type="text" id="skill-input" placeholder="Type a skill..." autocomplete="off">
+                    <div id="skills-suggestions"></div>
+                </div>
+
+                <div id="skills-tags"></div>
+
+                <input type="hidden" name="skills" id="skills">
+            </div>
 
             <button type="submit">Apply Filters</button>
         </form>
@@ -146,86 +347,45 @@ $result = $stmt->get_result();
         <?php if ($result->num_rows > 0): ?>
             <?php while($row = $result->fetch_assoc()): ?>
                 <div class="job-item">
-                    <h4><?php echo htmlspecialchars($row['title']); ?></h4>
+                    <h4><?= htmlspecialchars($row['title']) ?></h4>
 
-                    <p><strong>Company:</strong> <?php echo htmlspecialchars($row['company']); ?></p>
+                    <p><strong>Company:</strong> <?= htmlspecialchars($row['company']) ?></p>
 
                     <p><strong>Location:</strong>
-                        <?php 
-                            if ($row['country_name'] || $row['city_name']) {
-                                echo htmlspecialchars($row['country_name'] . ", " . $row['city_name']);
-                            } else {
-                                echo "Not specified";
-                            }
-                        ?>
+                        <?= htmlspecialchars(trim($row['country_name'] . ", " . $row['city_name'], " ,")) ?>
                     </p>
 
-                    <p><strong>Type:</strong> <?php echo htmlspecialchars($row['job_type']); ?></p>
+                    <p><strong>Type:</strong> <?= htmlspecialchars($row['job_type']) ?></p>
 
                     <p><strong>Description:</strong>
-                        <?php echo substr(htmlspecialchars($row['description']), 0, 100); ?>...
+                        <?= substr(htmlspecialchars($row['description']), 0, 100) ?>...
                     </p>
 
-                    <a href="job_details.php?id=<?php echo $row['id']; ?>">View Details</a>
+                    <a href="job_details.php?id=<?= $row['id'] ?>">View Details</a>
                 </div>
             <?php endwhile; ?>
         <?php else: ?>
-            <p>No job listings available.</p>
+            <p>No job listings found.</p>
         <?php endif; ?>
 
-        <div class="pagination">
-            <a href="#">Previous</a>
-            <a href="#">1</a>
-            <a href="#">2</a>
-            <a href="#">Next</a>
-        </div>
+        <!-- Pagination -->
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination">
+                <?php if ($page > 1): ?>
+                    <a href="<?= buildPageUrl($page - 1) ?>">Previous</a>
+                <?php endif; ?>
 
-        <!-- Timeout Overlay -->
-        <div id="timeout-overlay" style="
-            display:none;
-            position:fixed;
-            top:0;
-            left:0;
-            width:100%;
-            height:100%;
-            background:rgba(0,0,0,0.5);
-            z-index:9998;
-        "></div>
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <a href="<?= buildPageUrl($i) ?>" class="<?= $i == $page ? 'active' : '' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
 
-        <!-- Timeout Popup -->
-        <div id="timeout-popup" style="
-            display:none;
-            position:fixed;
-            top:50%;
-            left:50%;
-            transform:translate(-50%, -50%);
-            background:white;
-            padding:25px 30px;
-            width:320px;
-            border-radius:12px;
-            box-shadow:0 8px 25px rgba(0,0,0,0.25);
-            z-index:9999;
-            text-align:center;
-            opacity:0;
-            transition:opacity 0.3s ease;
-        ">
-            <h3 style="margin-top:0; font-size:20px; color:#333;">Session Timeout</h3>
-            <p style="font-size:14px; color:#555; margin-bottom:20px;">
-                You’ve been inactive for a while.  
-                You will be logged out soon.
-            </p>
-
-            <button onclick="stayLoggedIn()" style="
-                padding:10px 18px;
-                background:#007BFF;
-                color:white;
-                border:none;
-                border-radius:6px;
-                font-size:14px;
-                cursor:pointer;
-                width:100%;
-            ">Stay Logged In</button>
-        </div>
+                <?php if ($page < $totalPages): ?>
+                    <a href="<?= buildPageUrl($page + 1) ?>">Next</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
 
     </main>
 </div>
@@ -234,9 +394,78 @@ $result = $stmt->get_result();
     <p>&copy; 2025 Job Portal. All rights reserved.</p>
 </footer>
 
+<script>
+const allSkills = <?= json_encode($skillsMaster) ?>;
+let selectedSkills = [];
+
+// Restore selected skills from URL
+<?php if (!empty($selectedSkills)): ?>
+selectedSkills = <?= json_encode(array_values(array_filter(array_map(function($id) use ($skillsMaster) {
+    foreach ($skillsMaster as $s) {
+        if ($s['id'] == $id) return $s;
+    }
+    return null;
+}, $selectedSkills)))) ?>;
+<?php endif; ?>
+
+const skillInput = document.getElementById("skill-input");
+const suggestionsBox = document.getElementById("skills-suggestions");
+const tagsContainer = document.getElementById("skills-tags");
+const hiddenInput = document.getElementById("skills");
+
+function renderTags() {
+    tagsContainer.innerHTML = "";
+    selectedSkills.forEach(skill => {
+        const tag = document.createElement("div");
+        tag.className = "skill-tag";
+        tag.innerHTML = `${skill.name} <button data-id="${skill.id}">&times;</button>`;
+        tagsContainer.appendChild(tag);
+    });
+    hiddenInput.value = selectedSkills.map(s => s.id).join(",");
+}
+
+skillInput.addEventListener("input", () => {
+    const q = skillInput.value.toLowerCase();
+    if (!q) {
+        suggestionsBox.style.display = "none";
+        return;
+    }
+
+    const filtered = allSkills.filter(s =>
+        s.name.toLowerCase().includes(q) &&
+        !selectedSkills.some(sel => sel.id == s.id)
+    );
+
+    suggestionsBox.innerHTML = "";
+    filtered.forEach(skill => {
+        const div = document.createElement("div");
+        div.textContent = skill.name;
+        div.dataset.id = skill.id;
+        div.onclick = () => {
+            selectedSkills.push(skill);
+            renderTags();
+            skillInput.value = "";
+            suggestionsBox.style.display = "none";
+        };
+        suggestionsBox.appendChild(div);
+    });
+
+    suggestionsBox.style.display = filtered.length ? "block" : "none";
+});
+
+tagsContainer.addEventListener("click", e => {
+    if (e.target.tagName === "BUTTON") {
+        const id = e.target.dataset.id;
+        selectedSkills = selectedSkills.filter(s => s.id != id);
+        renderTags();
+    }
+});
+
+// Render tags on page load
+renderTags();
+</script>
+
 </body>
 </html>
 
-<?php
-$conn->close();
-?>
+<?php $conn->close(); ?>
