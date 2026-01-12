@@ -5,6 +5,7 @@ $password = "";
 $dbname = "job_portal";
 $port = 3306;
 
+
 /* ---------------------------------------------------------
    1. CONNECT TO MYSQL (NO DB SELECTED YET)
 --------------------------------------------------------- */
@@ -146,6 +147,19 @@ CREATE TABLE IF NOT EXISTS public_chat (
     message TEXT NOT NULL,
     posted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+");
+
+
+
+/* JOB REPORTS TABLE */
+$conn->query("
+CREATE TABLE IF NOT EXISTS job_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT NOT NULL,
+    user_id INT NULL,
+    report_date DATETIME NOT NULL,
+    UNIQUE KEY unique_report (job_id, user_id)
+)
 ");
 
 /* ---------------------------------------------------------
