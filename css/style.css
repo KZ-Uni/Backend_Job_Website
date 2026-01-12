@@ -61,6 +61,46 @@ main
     flex: 1; /* This allows the main content to grow and push footer to the bottom */
 }
 
+.searchbar-container {
+    width: 100%;
+    padding: 20px 0;
+    display: flex;
+    justify-content: center;
+    background: #f8f8f8;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.searchbar-form {
+    width: 80%;
+    max-width: 900px;
+    display: flex;
+    gap: 10px;
+}
+
+.searchbar-input {
+    flex: 1;
+    padding: 12px 15px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+.searchbar-button {
+    padding: 12px 20px;
+    background: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.searchbar-button:hover {
+    background: #005fcc;
+}
+
+
 /* Main Form */
 .signup-form,
 .login-form 
@@ -197,6 +237,25 @@ main
 
 
 
+/* Make Apply Now look like a link */
+.apply-link {
+    background: none;
+    border: none;
+    color: #007BFF;       /* same blue as your links */
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.apply-link:hover {
+    text-decoration: underline;
+}
+
+/* Keep the form inline so it doesn't break layout */
+.inline-form {
+    display: inline;
+}
 
 
 
