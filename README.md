@@ -11,7 +11,7 @@ Added Show all jobs
 Added chatbox
 Updated Employer Dashboard (chatbox)
 Updated Jobseeker Dashboard (chatbox)
-Updated db file (chatbox, limited admin file creation)
+Updated db file (chatbox, limited admin sql creation)
 Created & finished edit user role file
 Created & finished delete applications file
 Created & finshed delete job file
