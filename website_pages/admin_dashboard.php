@@ -46,6 +46,27 @@ $applications = $conn->query("
 ");
 
 /* ---------------------------------------------------------
+   FETCH JOB REPORTS
+--------------------------------------------------------- */
+$reports = $conn->query("
+    SELECT 
+        job_reports.id AS report_id,
+        job_reports.report_date,
+
+        jobs.id AS job_id,
+        jobs.title AS job_title,
+        jobs.company AS job_company,
+
+        users.username AS reporter_name,
+        users.email AS reporter_email
+
+    FROM job_reports
+    LEFT JOIN jobs ON job_reports.job_id = jobs.id
+    LEFT JOIN users ON job_reports.user_id = users.id
+    ORDER BY job_reports.report_date DESC
+");
+
+/* ---------------------------------------------------------
    CHATBOX AJAX HANDLER (LOAD + SEND)
 --------------------------------------------------------- */
 if (isset($_POST['chat_action'])) {
@@ -254,6 +275,45 @@ if (isset($_POST['chat_action'])) {
         <?php else: ?>
             <p>No applications found.</p>
         <?php endif; ?>
+
+        <!-- REPORTS SECTION -->
+        <h2 style="margin-top:40px;">Job Reports</h2>
+
+        <?php if ($reports && $reports->num_rows > 0): ?>
+            <?php while($r = $reports->fetch_assoc()): ?>
+                <div class="job-item">
+                    <p>
+                        <strong>Job:</strong>
+                        <a href="job_details.php?id=<?php echo (int)$r['job_id']; ?>" 
+                        style="color:#007BFF; text-decoration:none;">
+                            <?php echo htmlspecialchars($r['job_title']); ?>
+                        </a>
+                        (<?php echo htmlspecialchars($r['job_company']); ?>)
+                    </p>
+
+                    <p>
+                        <strong>Reported by:</strong>
+                        <?php echo htmlspecialchars($r['reporter_name']); ?>
+                        (<?php echo htmlspecialchars($r['reporter_email']); ?>)
+                    </p>
+
+                    <p>
+                        <strong>Date:</strong>
+                        <?php echo htmlspecialchars($r['report_date']); ?>
+                    </p>
+
+                    <form action="delete_report.php" method="POST" class="inline-form">
+                        <input type="hidden" name="id" value="<?php echo (int)$r['report_id']; ?>">
+                        <button type="submit" class="link-button" onclick="return confirm('Delete this report?');">
+                            Delete Report
+                        </button>
+                    </form>
+                </div>
+            <?php endwhile; ?>
+        <?php else: ?>
+            <p>No reports found.</p>
+        <?php endif; ?>
+
 
     <div id="timeout-overlay" style="
         display:none;
