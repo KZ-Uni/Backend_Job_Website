@@ -3,12 +3,13 @@ This project contains the work of Imade, Kerim and Shola.
 Work distribution:
 
 Imade:
-Updated & finished Admin Dashboard
-Added delete user for admins to admin dashboard
-Added Show all applications to admin dashboard
-Added Show all users to admin dashboard
-Added Show all jobs to admin dashboard
-Added Show all jobs to admin dashboard
+Updated & finished Admin Dashboard:
+Added delete user for admins
+Added Show all applications
+Added Show all users
+Added Show all jobs
+Updated Employer Dashboard (chatbox)
+Updated Jobseeker Dashboard (chatbox)
 Created & finished edit user role file
 Created & finished delete applications file
 Created & finshed delete job file
@@ -24,7 +25,6 @@ Created & finished Logout file
 Created & finished jobseeker dashboard file
 Created & finished employer dashboard file
 Created admin dashboard file
-Added Show all reports to admin dashboard
 Created & finished job details file
 Created & finished edit job file
 Created & finished add job file
