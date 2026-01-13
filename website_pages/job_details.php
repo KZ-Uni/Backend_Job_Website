@@ -40,7 +40,7 @@ $job = $result->fetch_assoc();
 --------------------------------------------------------- */
 $alreadyApplied = false;
 
-if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
+if (isset($_SESSION['user_id']) && $_SESSION['role']) {
     $user_id = $_SESSION['user_id'];
 
     $check = $conn->prepare("
@@ -51,6 +51,25 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
     $check->execute();
     $alreadyApplied = $check->get_result()->num_rows > 0;
 }
+
+/* ---------------------------------------------------------
+   CHECK IF USER ALREADY REPORTED THIS JOB
+   (IMPORTANT FIX: CHECK FOR ALL ROLES)
+--------------------------------------------------------- */
+$alreadyReported = false;
+
+if (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+
+    $checkReport = $conn->prepare("
+        SELECT id FROM job_reports 
+        WHERE user_id = ? AND job_id = ?
+    ");
+    $checkReport->bind_param("ii", $user_id, $job_id);
+    $checkReport->execute();
+    $alreadyReported = $checkReport->get_result()->num_rows > 0;
+}
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -166,6 +185,35 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
             </p>
         <?php endif; ?>
 
+        <!-- Report Job Button -->
+        <?php if ($role === 'jobseeker' || $role === 'employer' || $role === 'admin'): ?>
+            <?php if ($alreadyReported): ?>
+                <p style="color:red; margin-top:15px;">
+                    You have already reported this job.
+                </p>
+            <?php else: ?>
+                <form action="report_job.php" method="POST" style="margin-top:15px;">
+                    <input type="hidden" name="job_id" value="<?= $job['id'] ?>">
+                    <button type="submit" style="
+                        width:100%;
+                        padding:10px;
+                        background:#c62828;
+                        color:white;
+                        border:none;
+                        border-radius:4px;
+                        cursor:pointer;
+                        font-size:16px;
+                    ">Report Job</button>
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['reported'])): ?>
+            <p class="message-success">Thank you. This job has been reported.</p>
+        <?php elseif (isset($_GET['already_reported'])): ?>
+            <p class="message-error">You have already reported this job.</p>
+        <?php endif; ?>
+
     </div>
 
     <div id="timeout-overlay" style="
@@ -212,6 +260,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'Jobseeker') {
             width:100%;
         ">Stay Logged In</button>
     </div>
+
 </main>
 
 <footer>
