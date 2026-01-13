@@ -8,8 +8,10 @@ Added delete user for admins
 Added Show all applications
 Added Show all users
 Added Show all jobs
+Added chatbox
 Updated Employer Dashboard (chatbox)
 Updated Jobseeker Dashboard (chatbox)
+Updated db file (chatbox, limited admin file creation)
 Created & finished edit user role file
 Created & finished delete applications file
 Created & finshed delete job file
