@@ -1,12 +1,10 @@
-/* Global Reset */
-* 
+*
 {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* Ensure the body fills the entire viewport */
 html, body 
 {
     height: 100%;
@@ -18,10 +16,9 @@ body
     line-height: 1.6;
     background-color: #f4f4f4;
     display: flex;
-    flex-direction: column; /* Arrange items vertically */
+    flex-direction: column;
 }
 
-/* Header */
 header 
 {
     background-color: #333;
@@ -55,13 +52,13 @@ header nav ul li a
     text-decoration: none;
 }
 
-/* Main Content */
 main 
 {
-    flex: 1; /* This allows the main content to grow and push footer to the bottom */
+    flex: 1;
 }
 
-.searchbar-container {
+.searchbar-container
+{
     width: 100%;
     padding: 20px 0;
     display: flex;
@@ -71,14 +68,16 @@ main
     margin-bottom: 20px;
 }
 
-.searchbar-form {
+.searchbar-form
+{
     width: 80%;
     max-width: 900px;
     display: flex;
     gap: 10px;
 }
 
-.searchbar-input {
+.searchbar-input
+{
     flex: 1;
     padding: 12px 15px;
     font-size: 16px;
@@ -86,7 +85,8 @@ main
     border-radius: 6px;
 }
 
-.searchbar-button {
+.searchbar-button
+{
     padding: 12px 20px;
     background: #007BFF;
     color: white;
@@ -96,14 +96,14 @@ main
     font-size: 16px;
 }
 
-.searchbar-button:hover {
+.searchbar-button:hover
+{
     background: #005fcc;
 }
 
 
-/* Main Form */
-.signup-form,
-.login-form 
+
+.signup-form, .login-form 
 {
     background-color: white;
     padding: 20px;
@@ -112,17 +112,13 @@ main
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.signup-form label,
-.login-form label 
+.signup-form label, .login-form label 
 {
     display: block;
     margin-bottom: 5px;
 }
 
-.signup-form input,
-.login-form input,
-.signup-form select,
-.login-form select 
+.signup-form input, .login-form input, .signup-form select, .login-form select 
 {
     width: 100%;
     padding: 10px;
@@ -130,8 +126,7 @@ main
     border: 1px solid #ddd;
 }
 
-.signup-form button,
-.login-form button 
+.signup-form button, .login-form button 
 {
     width: 100%;
     padding: 10px;
@@ -141,13 +136,11 @@ main
     cursor: pointer;
 }
 
-.signup-form button:hover,
-.login-form button:hover 
+.signup-form button:hover, .login-form button:hover 
 {
     background-color: #555;
 }
 
-/* Main Content Layout */
 .main-content 
 {
     display: flex;
@@ -182,8 +175,7 @@ main
     font-weight: bold;
 }
 
-.filters select,
-.filters button 
+.filters select, .filters button 
 {
     margin-bottom: 15px;
     padding: 10px;
@@ -192,7 +184,9 @@ main
     border-radius: 5px;
 }
 
-/* Job Listings */
+
+
+
 .job-listings 
 {
     width: 70%;
@@ -237,23 +231,24 @@ main
 
 
 
-/* Make Apply Now look like a link */
-.apply-link {
+.apply-link
+{
     background: none;
     border: none;
-    color: #007BFF;       /* same blue as your links */
+    color: #007BFF;
     padding: 0;
     font: inherit;
     cursor: pointer;
     text-decoration: none;
 }
 
-.apply-link:hover {
+.apply-link:hover
+{
     text-decoration: underline;
 }
 
-/* Keep the form inline so it doesn't break layout */
-.inline-form {
+.inline-form
+{
     display: inline;
 }
 
@@ -279,7 +274,6 @@ main
 
 
 
-/* Pagination */
 .pagination 
 {
     margin-top: 20px;
@@ -301,7 +295,11 @@ main
     background-color: #f0f0f0;
 }
 
-/* Footer */
+
+
+
+
+
 footer 
 {
     background-color: #333;
