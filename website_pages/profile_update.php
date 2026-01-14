@@ -3,7 +3,8 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']))
+{
     header("Location: login.php");
     exit();
 }
@@ -27,30 +28,34 @@ $skill_ids = array_filter($skill_ids, function($v) { return $v !== ""; });
 $check = $conn->prepare("SELECT id FROM users WHERE (username=? OR email=?) AND id != ?");
 $check->bind_param("ssi", $username, $email, $user_id);
 $check->execute();
-if ($check->get_result()->num_rows > 0) {
+if ($check->get_result()->num_rows > 0)
+{
     header("Location: profile.php?error=duplicate");
     exit();
 }
 
 // Update password only if provided
-if (!empty($password)) {
+if (!empty($password))
+{
     $hashed = password_hash($password, PASSWORD_BCRYPT);
-} else {
+}
+else
+{
     $hashed = null;
 }
 
-/* ---------------------------------------------------------
-   UPDATE USER PROFILE
---------------------------------------------------------- */
-
-if ($hashed) {
+// UPDATE USER PROFILE
+if ($hashed)
+{
     $stmt = $conn->prepare("
         UPDATE users 
         SET username=?, email=?, country_id=?, city_id=?, password=? 
         WHERE id=?
     ");
     $stmt->bind_param("ssissi", $username, $email, $country_id, $city_id, $hashed, $user_id);
-} else {
+}
+else
+{
     $stmt = $conn->prepare("
         UPDATE users 
         SET username=?, email=?, country_id=?, city_id=? 
@@ -61,12 +66,10 @@ if ($hashed) {
 
 $stmt->execute();
 
-/* ---------------------------------------------------------
-   UPDATE SKILLS (ONLY FOR JOBSEEKERS)
---------------------------------------------------------- */
+// UPDATE SKILLS (ONLY FOR JOBSEEKERS)
 
-if ($role === "Jobseeker") {
-
+if ($role === "Jobseeker")
+{
     // Clear old skills
     $conn->query("DELETE FROM user_skills WHERE user_id = $user_id");
 
@@ -82,15 +85,11 @@ if ($role === "Jobseeker") {
     }
 }
 
-/* ---------------------------------------------------------
-   UPDATE SESSION
---------------------------------------------------------- */
+// UPDATE SESSION
 
 $_SESSION['username'] = $username;
 
-/* ---------------------------------------------------------
-   REDIRECT BACK
---------------------------------------------------------- */
+// REDIRECT BACK
 
 header("Location: profile.php?updated=1");
 exit();
