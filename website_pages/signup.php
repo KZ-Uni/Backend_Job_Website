@@ -3,35 +3,39 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
-// Ensure the form is submitted using POST method
-if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get the form data
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'POST')
+{
     $username = $_POST['username'];
     $email = $_POST['email'];
     $password = $_POST['password'];
     $role = $_POST['role'];
 
-    // Sanitize the user input to prevent SQL injection
+    // Sanitize the input to prevent SQL injection
     $username = $conn->real_escape_string($username);
     $email = $conn->real_escape_string($email);
 
-    // Check if username or email already exists in the database
+    // Check if username or email already exists
     $sql = "SELECT * FROM users WHERE username = '$username' OR email = '$email'";
     $result = $conn->query($sql);
 
-    if ($result->num_rows > 0) {
-        // If username or email already exists, show an error
+    if ($result->num_rows > 0)
+    {
         $feedback_message = "<p style='color: red;'>Username or email already taken. Please try again with different credentials.</p>";
-    } else {
+    }
+    else
+    {
         // Hash the password securely before storing
         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 
         // Insert the new user into the database
         $sql = "INSERT INTO users (username, email, password, role) VALUES ('$username', '$email', '$hashed_password', '$role')";
 
-        if ($conn->query($sql) === TRUE) {
+        if ($conn->query($sql) === TRUE)
+        {
             $feedback_message = "<p style='color: green;'>Registration successful! You can now <a href='login.php'>login</a>.</p>";
-        } else {
+        }
+        else
+        {
             $feedback_message = "<p style='color: red;'>Error: " . $conn->error . "</p>";
         }
     }
