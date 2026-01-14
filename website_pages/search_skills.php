@@ -10,7 +10,8 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 $skills = [];
-while ($row = $result->fetch_assoc()) {
+while ($row = $result->fetch_assoc())
+{
     $skills[] = $row;
 }
 
