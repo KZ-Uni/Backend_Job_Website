@@ -3,16 +3,16 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
-
-// Only allow Jobseekers
-if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'jobseeker') {
+if (!isset($_SESSION['user_id']) || strtolower($_SESSION['role']) !== 'jobseeker')
+{
     header("Location: login.php");
     exit();
 }
 
 $user_id = (int)$_SESSION['user_id'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['job_id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['job_id']))
+{
     $job_id = (int)$_POST['job_id'];
 
     // Prevent duplicate applications
@@ -21,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['job_id'])) {
     $check->execute();
     $check->store_result();
 
-    if ($check->num_rows > 0) {
+    if ($check->num_rows > 0)
+    {
         header("Location: job_details.php?id=$job_id&error=alreadyapplied");
         exit();
     }
@@ -30,15 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['job_id'])) {
     $stmt = $conn->prepare("INSERT INTO applications (user_id, job_id) VALUES (?, ?)");
     $stmt->bind_param("ii", $user_id, $job_id);
 
-    if ($stmt->execute()) {
+    if ($stmt->execute())
+    {
         header("Location: job_details.php?id=$job_id&applied=1");
         exit();
-    } else {
+    }
+    else
+    {
         header("Location: job_details.php?id=$job_id&error=applyfail");
         exit();
     }
-} else {
+}
+else
+{
     header("Location: index.php?error=badreq");
     exit();
-}
-?>
+}?>
