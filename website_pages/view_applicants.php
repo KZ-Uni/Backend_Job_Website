@@ -3,8 +3,8 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
-// Ensure employer is logged in
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer')
+{
     header("Location: login.php");
     exit();
 }
@@ -12,7 +12,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
 $employer_id = $_SESSION['user_id'];
 
 // Validate job_id
-if (!isset($_GET['job_id'])) {
+if (!isset($_GET['job_id']))
+{
     header("Location: employer_dashboard.php?error=nojobid");
     exit();
 }
@@ -25,7 +26,8 @@ $checkJob->bind_param("ii", $job_id, $employer_id);
 $checkJob->execute();
 $jobResult = $checkJob->get_result();
 
-if ($jobResult->num_rows === 0) {
+if ($jobResult->num_rows === 0)
+{
     header("Location: employer_dashboard.php?error=unauthorized");
     exit();
 }
@@ -40,6 +42,7 @@ $applicants = $conn->prepare("
     WHERE applications.job_id = ?
     ORDER BY applications.applied_at DESC
 ");
+
 $applicants->bind_param("i", $job_id);
 $applicants->execute();
 $applicantResult = $applicants->get_result();
@@ -51,14 +54,16 @@ $applicantResult = $applicants->get_result();
     <link rel="stylesheet" href="../css/style.css">
 
     <style>
-        .page-header {
+        .page-header
+        {
             background: #f2f2f2;
             padding: 20px;
             border-radius: 6px;
             margin-bottom: 25px;
         }
 
-        .applicant-box {
+        .applicant-box
+        {
             background: #f9f9f9;
             border: 1px solid #ddd;
             padding: 18px;
@@ -66,7 +71,8 @@ $applicantResult = $applicants->get_result();
             border-radius: 6px;
         }
 
-        .status-badge {
+        .status-badge
+        {
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 13px;
@@ -79,7 +85,8 @@ $applicantResult = $applicants->get_result();
         .Accepted { background: green; }
         .Rejected { background: red; }
 
-        .pipeline-btn {
+        .pipeline-btn
+        {
             padding: 6px 10px;
             border: none;
             border-radius: 4px;
@@ -94,7 +101,8 @@ $applicantResult = $applicants->get_result();
         .btn-accept { background: green; }
         .btn-reject { background: red; }
 
-        .download-btn {
+        .download-btn
+        {
             padding: 8px 12px;
             background: #007BFF;
             color: white;
@@ -104,17 +112,20 @@ $applicantResult = $applicants->get_result();
             display: inline-block;
         }
 
-        .download-btn:hover {
+        .download-btn:hover
+        {
             background: #0056b3;
         }
 
-        .back-link {
+        .back-link
+        {
             margin-top: 20px;
             display: inline-block;
             color: #007BFF;
         }
 
-        .back-link:hover {
+        .back-link:hover
+        {
             text-decoration: underline;
         }
     </style>
@@ -124,136 +135,133 @@ $applicantResult = $applicants->get_result();
 </head>
 <body>
 
-<header>
-    <div class="container">
-        <h1>Applicants</h1>
-        <nav>
-            <ul>
-                <li><a href="employer_dashboard.php">Dashboard</a></li>
-                <li>Hello, <?php echo htmlspecialchars($_SESSION['username']); ?></li>
-                <li><a href="logout.php">Logout</a></li>
-            </ul>
-        </nav>
-    </div>
-</header>
+    <header>
+        <div class="container">
+            <h1>Applicants</h1>
+            <nav>
+                <ul>
+                    <li><a href="employer_dashboard.php">Dashboard</a></li>
+                    <li>Hello, <?php echo htmlspecialchars($_SESSION['username']); ?></li>
+                    <li><a href="logout.php">Logout</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
 
-<main>
-    <div class="container" style="width:80%; margin:30px auto;">
+    <main>
+        <div class="container" style="width:80%; margin:30px auto;">
 
-        <div class="page-header">
-            <h2><?php echo htmlspecialchars($job['title']); ?></h2>
-            <p><strong>Total Applicants:</strong> <?php echo $applicantResult->num_rows; ?></p>
+            <div class="page-header">
+                <h2><?php echo htmlspecialchars($job['title']); ?></h2>
+                <p><strong>Total Applicants:</strong> <?php echo $applicantResult->num_rows; ?></p>
+            </div>
+
+            <a href="download_applicants.php?job_id=<?php echo $job_id; ?>" class="download-btn">
+                Download Applicants (CSV)
+            </a>
+
+            <?php if ($applicantResult->num_rows > 0): ?>
+                <?php while ($row = $applicantResult->fetch_assoc()): ?>
+                    <div class="applicant-box">
+                        <p><strong>Name:</strong> <?php echo htmlspecialchars($row['username']); ?></p>
+                        <p><strong>Email:</strong> <?php echo htmlspecialchars($row['email']); ?></p>
+                        <p><strong>Applied on:</strong> <?php echo htmlspecialchars($row['applied_at']); ?></p>
+
+                        <p>
+                            <strong>Status:</strong>
+                            <span class="status-badge <?php echo $row['status']; ?>">
+                                <?php echo $row['status']; ?>
+                            </span>
+                        </p>
+
+                        <div>
+                            <form action="update_application_status.php" method="POST" style="display:inline;">
+                                <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                                <input type="hidden" name="status" value="Filtered">
+                                <button class="pipeline-btn btn-filter">Filtered</button>
+                            </form>
+
+                            <form action="update_application_status.php" method="POST" style="display:inline;">
+                                <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                                <input type="hidden" name="status" value="Interview">
+                                <button class="pipeline-btn btn-interview">Interview</button>
+                            </form>
+
+                            <form action="update_application_status.php" method="POST" style="display:inline;">
+                                <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                                <input type="hidden" name="status" value="Rejected">
+                                <button class="pipeline-btn btn-reject">Reject</button>
+                            </form>
+                            
+                            <form action="update_application_status.php" method="POST" style="display:inline;">
+                                <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
+                                <input type="hidden" name="status" value="Accepted">
+                                <button class="pipeline-btn btn-accept">Accept</button>
+                            </form>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <h3>No applicants yet</h3>
+                    <p>Check back later — applicants will appear here as they apply.</p>
+                </div>
+            <?php endif; ?>
+
+            <a href="employer_dashboard.php" class="back-link">← Back to Dashboard</a>
+
         </div>
 
-        <!-- DOWNLOAD CSV BUTTON -->
-        <a href="download_applicants.php?job_id=<?php echo $job_id; ?>" class="download-btn">
-            Download Applicants (CSV)
-        </a>
-
-        <?php if ($applicantResult->num_rows > 0): ?>
-            <?php while ($row = $applicantResult->fetch_assoc()): ?>
-                <div class="applicant-box">
-                    <p><strong>Name:</strong> <?php echo htmlspecialchars($row['username']); ?></p>
-                    <p><strong>Email:</strong> <?php echo htmlspecialchars($row['email']); ?></p>
-                    <p><strong>Applied on:</strong> <?php echo htmlspecialchars($row['applied_at']); ?></p>
-
-                    <p>
-                        <strong>Status:</strong>
-                        <span class="status-badge <?php echo $row['status']; ?>">
-                            <?php echo $row['status']; ?>
-                        </span>
-                    </p>
-
-                    <!-- PIPELINE BUTTONS -->
-                    <div>
-                        <form action="update_application_status.php" method="POST" style="display:inline;">
-                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
-                            <input type="hidden" name="status" value="Filtered">
-                            <button class="pipeline-btn btn-filter">Filtered</button>
-                        </form>
-
-                        <form action="update_application_status.php" method="POST" style="display:inline;">
-                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
-                            <input type="hidden" name="status" value="Interview">
-                            <button class="pipeline-btn btn-interview">Interview</button>
-                        </form>
-
-                        <form action="update_application_status.php" method="POST" style="display:inline;">
-                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
-                            <input type="hidden" name="status" value="Rejected">
-                            <button class="pipeline-btn btn-reject">Reject</button>
-                        </form>
-                        
-                        <form action="update_application_status.php" method="POST" style="display:inline;">
-                            <input type="hidden" name="application_id" value="<?php echo $row['id']; ?>">
-                            <input type="hidden" name="status" value="Accepted">
-                            <button class="pipeline-btn btn-accept">Accept</button>
-                        </form>
-                    </div>
-                </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <div class="empty-state">
-                <h3>No applicants yet</h3>
-                <p>Check back later — applicants will appear here as they apply.</p>
-            </div>
-        <?php endif; ?>
-
-        <a href="employer_dashboard.php" class="back-link">← Back to Dashboard</a>
-
-    </div>
-
-    
-    <div id="timeout-overlay" style="
-        display:none;
-        position:fixed;
-        top:0;
-        left:0;
-        width:100%;
-        height:100%;
-        background:rgba(0,0,0,0.5);
-        z-index:9998;
-    "></div>
-
-    <!-- Timeout Popup -->
-    <div id="timeout-popup" style="
-        display:none;
-        position:fixed;
-        top:50%;
-        left:50%;
-        transform:translate(-50%, -50%);
-        background:white;
-        padding:25px 30px;
-        width:320px;
-        border-radius:12px;
-        box-shadow:0 8px 25px rgba(0,0,0,0.25);
-        z-index:9999;
-        text-align:center;
-        opacity:0;
-        transition:opacity 0.3s ease;
-    ">
-        <h3 style="margin-top:0; font-size:20px; color:#333;">Session Timeout</h3>
-        <p style="font-size:14px; color:#555; margin-bottom:20px;">
-            You’ve been inactive for a while.  
-            You will be logged out soon.
-        </p>
-
-        <button onclick="stayLoggedIn()" style="
-            padding:10px 18px;
-            background:#007BFF;
-            color:white;
-            border:none;
-            border-radius:6px;
-            font-size:14px;
-            cursor:pointer;
+        
+        <div id="timeout-overlay" style="
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
             width:100%;
-        ">Stay Logged In</button>
-    </div>
-</main>
+            height:100%;
+            background:rgba(0,0,0,0.5);
+            z-index:9998;
+        "></div>
 
-<footer>
-    <p>&copy; 2025 Job Portal. All rights reserved.</p>
-</footer>
+        <!-- Timeout Popup -->
+        <div id="timeout-popup" style="
+            display:none;
+            position:fixed;
+            top:50%;
+            left:50%;
+            transform:translate(-50%, -50%);
+            background:white;
+            padding:25px 30px;
+            width:320px;
+            border-radius:12px;
+            box-shadow:0 8px 25px rgba(0,0,0,0.25);
+            z-index:9999;
+            text-align:center;
+            opacity:0;
+            transition:opacity 0.3s ease;
+        ">
+            <h3 style="margin-top:0; font-size:20px; color:#333;">Session Timeout</h3>
+            <p style="font-size:14px; color:#555; margin-bottom:20px;">
+                You’ve been inactive for a while.  
+                You will be logged out soon.
+            </p>
 
+            <button onclick="stayLoggedIn()" style="
+                padding:10px 18px;
+                background:#007BFF;
+                color:white;
+                border:none;
+                border-radius:6px;
+                font-size:14px;
+                cursor:pointer;
+                width:100%;
+            ">Stay Logged In</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Job Portal. All rights reserved.</p>
+    </footer>
 </body>
 </html>
