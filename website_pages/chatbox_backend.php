@@ -2,7 +2,8 @@
 session_start();
 $conn = new mysqli("localhost", "root", "", "job_portal");
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+if ($_SERVER["REQUEST_METHOD"] === "POST")
+{
     $uid = $_SESSION["user_id"];
     $msg = $conn->real_escape_string($_POST["message"]);
     $conn->query("INSERT INTO public_chat (user_id, message) VALUES ($uid, '$msg')");
@@ -18,7 +19,8 @@ $result = $conn->query("
 ");
 
 $messages = [];
-while ($row = $result->fetch_assoc()) {
+while ($row = $result->fetch_assoc())
+{
     $messages[] = $row;
 }
 
