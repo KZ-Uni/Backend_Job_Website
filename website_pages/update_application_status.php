@@ -3,11 +3,13 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer')
+{
     exit("Unauthorized");
 }
 
-if (!isset($_POST['application_id']) || !isset($_POST['status'])) {
+if (!isset($_POST['application_id']) || !isset($_POST['status']))
+{
     exit("Invalid request");
 }
 
@@ -17,7 +19,8 @@ $status = $_POST['status'];
 // Allowed statuses
 $allowed = ['Filtered', 'Interview', 'Accepted', 'Rejected'];
 
-if (!in_array($status, $allowed)) {
+if (!in_array($status, $allowed))
+{
     exit("Invalid status");
 }
 
@@ -28,11 +31,13 @@ $check = $conn->prepare("
     JOIN jobs ON applications.job_id = jobs.id
     WHERE applications.id = ? AND jobs.employer_id = ?
 ");
+
 $check->bind_param("ii", $application_id, $_SESSION['user_id']);
 $check->execute();
 $res = $check->get_result();
 
-if ($res->num_rows === 0) {
+if ($res->num_rows === 0)
+{
     exit("Unauthorized");
 }
 
