@@ -2,7 +2,8 @@
 include('timeout_check.php');
 include('db.php');
 
-if (!isset($_GET['country_id'])) {
+if (!isset($_GET['country_id']))
+{
     echo json_encode([]);
     exit();
 }
@@ -15,7 +16,8 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 $cities = [];
-while ($row = $result->fetch_assoc()) {
+while ($row = $result->fetch_assoc())
+{
     $cities[] = $row;
 }
 
