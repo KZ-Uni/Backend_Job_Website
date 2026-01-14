@@ -15,13 +15,14 @@ if (!empty($_POST)) {
         $user = $result->fetch_assoc();
 
         // Verify hashed password
-        if (password_verify($password, $user['password'])) {
-
+        if (password_verify($password, $user['password']))
+        {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
 
-            if ($user['role'] == 'Admin') {
+            if ($user['role'] == 'Admin')
+            {
                 header('Location: admin_dashboard.php');
             }
             elseif ($user['role'] == 'Employer')
@@ -37,10 +38,14 @@ if (!empty($_POST)) {
                 header('Location: index.php');
             }
             exit();
-        } else {
+        }
+        else
+        {
             echo "Invalid credentials!";
         }
-    } else {
+    }
+    else
+    {
         echo "Invalid credentials!";
     }
 }
@@ -54,7 +59,6 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In</title>
-    <!-- Correct link to CSS -->
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
