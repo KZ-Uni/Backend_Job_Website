@@ -3,28 +3,29 @@ session_start();
 include('timeout_check.php');
 include('db.php');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Employer')
+{
     exit("Unauthorized");
 }
 
-if (!isset($_GET['job_id'])) {
+if (!isset($_GET['job_id']))
+{
     exit("No job ID");
 }
 
 $job_id = (int)$_GET['job_id'];
 $employer_id = $_SESSION['user_id'];
 
-// Verify employer owns the job
 $check = $conn->prepare("SELECT id FROM jobs WHERE id = ? AND employer_id = ?");
 $check->bind_param("ii", $job_id, $employer_id);
 $check->execute();
 $res = $check->get_result();
 
-if ($res->num_rows === 0) {
+if ($res->num_rows === 0)
+{
     exit("Unauthorized access");
 }
 
-// Fetch applicants INCLUDING STATUS
 $stmt = $conn->prepare("
     SELECT users.username, users.email, applications.applied_at, applications.status
     FROM applications
@@ -35,7 +36,6 @@ $stmt->bind_param("i", $job_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Clean output buffer
 ob_clean();
 
 // CSV headers
@@ -47,19 +47,19 @@ $output = fopen("php://output", "w");
 // Use semicolon for Excel compatibility
 $delimiter = ";";
 
-// Header row
+// Header
 fputcsv($output, ["Username", "Email", "Applied At", "Status"], $delimiter);
 
-// Data rows
-while ($row = $result->fetch_assoc()) {
-
-    // Prevent Excel ####### issue by forcing text
-    $appliedAt = "'" . $row['applied_at'];
+// Data
+while ($row = $result->fetch_assoc())
+{
+    // Prevent Excel #######, issue NOT NEEDED JUST MAKE COLLUMN BIGGER
+    //$appliedAt = "'" . $row['applied_at'];
 
     fputcsv($output, [
         $row['username'],
         $row['email'],
-        $appliedAt,
+        $row['applied_at'],
         $row['status']
     ], $delimiter);
 }
