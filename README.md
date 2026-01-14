@@ -1,4 +1,4 @@
-This project contains the work of Imade, Kerim and Shola.
+This project contains the work of Imade and Kerim.
 
 Work distribution:
 
@@ -12,6 +12,7 @@ Added chatbox
 Updated Employer Dashboard (chatbox)
 Updated Jobseeker Dashboard (chatbox)
 Updated db file (chatbox, limited admin sql creation)
+Updated & finished edit job (merged admin and employer edit job files)
 Created & finished edit user role file
 Created & finished delete applications file
 Created & finshed delete job file
@@ -28,7 +29,7 @@ Created & finished jobseeker dashboard file
 Created & finished employer dashboard file
 Created admin dashboard file
 Created & finished job details file
-Created & finished edit job file
+Created edit job file
 Created & finished add job file
 Created & finished apply job file
 Created & finished view applicants file
