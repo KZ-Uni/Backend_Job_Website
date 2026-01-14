@@ -188,7 +188,7 @@ if (isset($_POST['chat_action']))
                             <strong>Applied at:</strong> <?php echo htmlspecialchars($a['applied_at']); ?>
                         </p>
 
-                        <form action="delete_application.php" method="POST" class="inline-form">
+                        <form action="delete_applications.php" method="POST" class="inline-form">
                             <input type="hidden" name="id" value="<?php echo (int)$a['id']; ?>">
                             <button type="submit" class="link-button" onclick="return confirm('Delete this application?');">
                                 Delete Application
@@ -348,3 +348,4 @@ if (isset($_POST['chat_action']))
     </script>
 </body>
 </html>
+
