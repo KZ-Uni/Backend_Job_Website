@@ -3,33 +3,26 @@ $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "job_portal";
-$port = 3306;
+$port = 3306; // CHANGE THIS TO WHATEVER PORT IS ON XAMPP
 
+// 1. CONNECT TO MYSQL (NO DB SELECTED YET)
 
-/* ---------------------------------------------------------
-   1. CONNECT TO MYSQL (NO DB SELECTED YET)
---------------------------------------------------------- */
 $conn = new mysqli($servername, $username, $password, "", $port);
 
-if ($conn->connect_error) {
+if ($conn->connect_error)
+{
     die("Connection failed: " . $conn->connect_error);
 }
 
-/* ---------------------------------------------------------
-   2. CREATE DATABASE IF NOT EXISTS
---------------------------------------------------------- */
+// 2. CREATE DATABASE IF NOT EXISTS
 $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 
-/* ---------------------------------------------------------
-   3. SELECT THE DATABASE
---------------------------------------------------------- */
+// 3. SELECT THE DATABASE
 $conn->select_db($dbname);
 
-/* ---------------------------------------------------------
-   4. CREATE TABLES IN CORRECT ORDER
---------------------------------------------------------- */
+// 4. CREATE TABLES IN CORRECT ORDER
 
-/* COUNTRIES TABLE */
+// COUNTRIES TABLE
 $conn->query("
 CREATE TABLE IF NOT EXISTS countries (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -37,7 +30,7 @@ CREATE TABLE IF NOT EXISTS countries (
 ) ENGINE=InnoDB;
 ");
 
-/* CITIES TABLE */
+// CITIES TABLE
 $conn->query("
 CREATE TABLE IF NOT EXISTS cities (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -47,7 +40,7 @@ CREATE TABLE IF NOT EXISTS cities (
 ) ENGINE=InnoDB;
 ");
 
-/* SKILLS MASTER TABLE (predefined skills) */
+// SKILLS MASTER TABLE (predefined skills)
 $conn->query("
 CREATE TABLE IF NOT EXISTS skills_master (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -55,7 +48,7 @@ CREATE TABLE IF NOT EXISTS skills_master (
 ) ENGINE=InnoDB;
 ");
 
-/* USERS TABLE */
+// USERS TABLE
 $conn->query("
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -83,7 +76,7 @@ CREATE TABLE IF NOT EXISTS user_skills (
 ) ENGINE=InnoDB;
 ");
 
-/* JOBS TABLE */
+// JOBS TABLE
 $conn->query("
 CREATE TABLE IF NOT EXISTS jobs (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -106,7 +99,7 @@ CREATE TABLE IF NOT EXISTS jobs (
 ) ENGINE=InnoDB;
 ");
 
-/* APPLICATIONS TABLE */
+// APPLICATIONS TABLE
 $conn->query("
 CREATE TABLE IF NOT EXISTS applications (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -118,12 +111,11 @@ CREATE TABLE IF NOT EXISTS applications (
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 ");
-/* ---------------------------------------------------------
-   MESSAGES TABLE (NO FOREIGN KEYS)
-   In‑App Messaging System
-   Employers ↔ Jobseekers
---------------------------------------------------------- */
 
+
+/* MESSAGES TABLE (NO FOREIGN KEYS)
+   In‑App Messaging System
+   Employers ↔ Jobseekers */
 $conn->query("
 CREATE TABLE IF NOT EXISTS messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -135,11 +127,10 @@ CREATE TABLE IF NOT EXISTS messages (
     is_read TINYINT(1) DEFAULT 0
 ) ENGINE=InnoDB;
 ");
-/* ---------------------------------------------------------
-   PUBLIC CHATBOX (GLOBAL SUPPORT CHAT)
-   Everyone can post messages visible to all users.
---------------------------------------------------------- */
 
+
+/* PUBLIC CHATBOX (GLOBAL SUPPORT CHAT)
+   Everyone can post messages visible to all users. */
 $conn->query("
 CREATE TABLE IF NOT EXISTS public_chat (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -162,12 +153,12 @@ CREATE TABLE IF NOT EXISTS job_reports (
 )
 ");
 
-/* ---------------------------------------------------------
-   5. INSERT EUROPEAN COUNTRIES IF EMPTY
---------------------------------------------------------- */
+// 5. INSERT EUROPEAN COUNTRIES IF EMPTY
+
 $checkCountries = $conn->query("SELECT id FROM countries LIMIT 1");
 
-if ($checkCountries->num_rows == 0) {
+if ($checkCountries->num_rows == 0)
+{
     $conn->query("
         INSERT INTO countries (name) VALUES
         ('Austria'), ('Belgium'), ('Bulgaria'), ('Croatia'), ('Cyprus'),
@@ -180,13 +171,12 @@ if ($checkCountries->num_rows == 0) {
     ");
 }
 
-/* ---------------------------------------------------------
-   6. INSERT ALL MAJOR EUROPEAN CITIES IF EMPTY
---------------------------------------------------------- */
+// 6. INSERT ALL MAJOR EUROPEAN CITIES IF EMPTY
+
 $checkCities = $conn->query("SELECT id FROM cities LIMIT 1");
 
-if ($checkCities->num_rows == 0) {
-
+if ($checkCities->num_rows == 0)
+{
     // Austria
     $conn->query("INSERT INTO cities (country_id, name) VALUES
         ((SELECT id FROM countries WHERE name='Austria'), 'Vienna'),
@@ -402,12 +392,12 @@ if ($checkCities->num_rows == 0) {
     ");
 }
 
-/* ---------------------------------------------------------
-   7. INSERT PREDEFINED SKILLS IF EMPTY
---------------------------------------------------------- */
+// 7. INSERT PREDEFINED SKILLS IF EMPTY
+
 $checkSkills = $conn->query("SELECT id FROM skills_master LIMIT 1");
 
-if ($checkSkills->num_rows == 0) {
+if ($checkSkills->num_rows == 0)
+{
     $conn->query("
         INSERT INTO skills_master (name) VALUES
         ('PHP'),
@@ -462,9 +452,7 @@ if ($checkSkills->num_rows == 0) {
     ");
 }
 
-/* ---------------------------------------------------------
-   8. CREATE DEFAULT USERS IF THEY DO NOT EXIST
---------------------------------------------------------- */
+// 8. CREATE DEFAULT USERS IF THEY DO NOT EXIST
 function createDefaultUser($conn, $username, $email, $password, $role)
 {
     $check = $conn->query("SELECT id FROM users WHERE username='$username' OR email='$email'");
@@ -481,23 +469,23 @@ function createDefaultUser($conn, $username, $email, $password, $role)
 $checkUsers = $conn->query("SELECT COUNT(*) AS total FROM users");
 $row = $checkUsers->fetch_assoc();
 
-if ($row['total'] == 0) {
+if ($row['total'] == 0)
+{
     createDefaultUser($conn, "admin1", "admin1@example.com", "admin1", "Admin");
     createDefaultUser($conn, "employer1", "employer1@example.com", "employer1", "Employer");
     createDefaultUser($conn, "jobseeker1", "jobseeker1@example.com", "jobseeker1", "Jobseeker");
 }
 
-/* ---------------------------------------------------------
-   9. CREATE DEFAULT JOBS IF NONE EXIST
---------------------------------------------------------- */
+// 9. CREATE DEFAULT JOBS IF NONE EXIST
+
 $checkJobs = $conn->query("SELECT id FROM jobs LIMIT 1");
 
-if ($checkJobs->num_rows == 0) {
-
+if ($checkJobs->num_rows == 0)
+{
     $emp = $conn->query("SELECT id FROM users WHERE role='Employer' LIMIT 1");
 
-    if ($emp && $emp->num_rows > 0) {
-
+    if ($emp && $emp->num_rows > 0)
+    {
         $employer_id = (int)$emp->fetch_assoc()['id'];
 
         $conn->query("
